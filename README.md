@@ -1,5 +1,65 @@
 # React + Vite
 
+## Reglas de negocio y pruebas en Postman
+
+La API aplica las reglas en la capa `@Service`; los controladores solo reciben la petición y delegan.
+
+### Regla 1: proyectos
+
+`ProjectService` exige que el nombre del proyecto no esté vacío, tenga máximo 80 caracteres y no esté repetido.
+
+Caso exitoso, `POST http://localhost:8080/api/projects`, respuesta `201 Created`:
+
+```json
+{
+	"name": "Lanzamiento Aurora",
+	"description": "Video promocional para redes"
+}
+```
+
+Caso fallido, mismo endpoint, respuesta `400 Bad Request`:
+
+```json
+{
+	"name": "   ",
+	"description": "Proyecto sin nombre"
+}
+```
+
+### Regla 2: tareas
+
+`TaskService` exige un título de máximo 120 caracteres y limita el estado a `PENDIENTE`, `EN_PROGRESO` o `COMPLETADA`.
+
+Caso exitoso, `POST http://localhost:8080/api/projects/{projectId}/tasks`, respuesta `201 Created`:
+
+```json
+{
+	"title": "Escribir guion",
+	"status": "PENDIENTE"
+}
+```
+
+Caso fallido, mismo endpoint, respuesta `400 Bad Request`:
+
+```json
+{
+	"title": "Escribir guion",
+	"status": "FINALIZADA"
+}
+```
+
+El error controlado tiene esta forma:
+
+```json
+{
+	"status": 400,
+	"error": "Bad Request",
+	"message": "El estado debe ser PENDIENTE, EN_PROGRESO o COMPLETADA"
+}
+```
+
+Las pruebas automatizadas equivalentes están en `BusinessRulesIntegrationTests` y se ejecutan con `./mvnw.cmd test`.
+
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 
 Currently, two official plugins are available:
