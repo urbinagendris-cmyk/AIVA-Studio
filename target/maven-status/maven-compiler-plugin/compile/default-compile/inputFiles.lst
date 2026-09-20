@@ -1,11 +1,17 @@
 /Users/ygarme/Downloads/AIVA-Studio/src/main/java/com/cesde/aivastudio/AivaStudioApplication.java
+/Users/ygarme/Downloads/AIVA-Studio/src/main/java/com/cesde/aivastudio/controller/GeneracionVideoController.java
 /Users/ygarme/Downloads/AIVA-Studio/src/main/java/com/cesde/aivastudio/controller/ProjectController.java
 /Users/ygarme/Downloads/AIVA-Studio/src/main/java/com/cesde/aivastudio/controller/TaskController.java
 /Users/ygarme/Downloads/AIVA-Studio/src/main/java/com/cesde/aivastudio/exception/BusinessRuleException.java
 /Users/ygarme/Downloads/AIVA-Studio/src/main/java/com/cesde/aivastudio/exception/GlobalExceptionHandler.java
+/Users/ygarme/Downloads/AIVA-Studio/src/main/java/com/cesde/aivastudio/model/PlantillaVideo.java
 /Users/ygarme/Downloads/AIVA-Studio/src/main/java/com/cesde/aivastudio/model/Project.java
+/Users/ygarme/Downloads/AIVA-Studio/src/main/java/com/cesde/aivastudio/model/RenderVideo.java
 /Users/ygarme/Downloads/AIVA-Studio/src/main/java/com/cesde/aivastudio/model/Task.java
+/Users/ygarme/Downloads/AIVA-Studio/src/main/java/com/cesde/aivastudio/repository/PlantillaVideoRepository.java
 /Users/ygarme/Downloads/AIVA-Studio/src/main/java/com/cesde/aivastudio/repository/ProjectRepository.java
+/Users/ygarme/Downloads/AIVA-Studio/src/main/java/com/cesde/aivastudio/repository/RenderVideoRepository.java
 /Users/ygarme/Downloads/AIVA-Studio/src/main/java/com/cesde/aivastudio/repository/TaskRepository.java
+/Users/ygarme/Downloads/AIVA-Studio/src/main/java/com/cesde/aivastudio/service/GeneracionVideoService.java
 /Users/ygarme/Downloads/AIVA-Studio/src/main/java/com/cesde/aivastudio/service/ProjectService.java
 /Users/ygarme/Downloads/AIVA-Studio/src/main/java/com/cesde/aivastudio/service/TaskService.java
