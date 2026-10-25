@@ -1,76 +1,40 @@
-# React + Vite
+# AIVA Studio
 
-## Reglas de negocio y pruebas en Postman
+Frontend de un estudio para preparar y administrar solicitudes de generación de videos con IA. La interfaz está construida con React y Vite; el backend y la conexión con proveedores de generación se desarrollan por separado.
 
-La API aplica las reglas en la capa `@Service`; los controladores solo reciben la petición y delegan.
+## Experiencia incluida
 
-### Regla 1: proyectos
+- Inicio de sesión de demostración y espacio de trabajo creativo.
+- Resumen con saldo, actividad reciente y estados de generación.
+- Flujo guiado de tres pasos: brief y prompt, modelo y formato, revisión y envío.
+- Catálogo demostrativo de modelos con costo estimado por segundo.
+- Biblioteca de proyectos con búsqueda, filtros por estado y vista de detalles.
+- Pantalla de créditos con historial y simulación de recargas.
+- Diseño adaptable a pantallas pequeñas.
 
-`ProjectService` exige que el nombre del proyecto no esté vacío, tenga máximo 80 caracteres y no esté repetido.
+El flujo retoma patrones de navegación, paneles de gestión, filtros y asistente de reserva del [proyecto de referencia](https://github.com/jfinforecursos/backend2-proyecto-integrador-v1), traducidos al dominio de creación audiovisual. No se conservan entidades ni contenido médico.
 
-Caso exitoso, `POST http://localhost:8080/api/projects`, respuesta `201 Created`:
+## Ejecutar localmente
 
-```json
-{
-	"name": "Lanzamiento Aurora",
-	"description": "Video promocional para redes"
-}
+Requisitos: Node.js y npm.
+
+```bash
+npm install
+npm run dev
 ```
 
-Caso fallido, mismo endpoint, respuesta `400 Bad Request`:
+Comandos disponibles:
 
-```json
-{
-	"name": "   ",
-	"description": "Proyecto sin nombre"
-}
+```bash
+npm run lint
+npm run build
+npm run preview
 ```
 
-### Regla 2: tareas
+## Modo frontend
 
-`TaskService` exige un título de máximo 120 caracteres y limita el estado a `PENDIENTE`, `EN_PROGRESO` o `COMPLETADA`.
+El catálogo, los proyectos de ejemplo, la cola de generación y las recargas son datos de demostración en memoria. Se reinician al recargar la página. La interfaz puede llamar a los endpoints existentes de AIVA para crear proyectos y recargar créditos; si la API no está disponible, informa que el cambio quedó solo en la sesión actual.
 
-Caso exitoso, `POST http://localhost:8080/api/projects/{projectId}/tasks`, respuesta `201 Created`:
+Configura `VITE_API_URL` para apuntar el frontend a la API. Por defecto usa `http://localhost:8080/api`.
 
-```json
-{
-	"title": "Escribir guion",
-	"status": "PENDIENTE"
-}
-```
-
-Caso fallido, mismo endpoint, respuesta `400 Bad Request`:
-
-```json
-{
-	"title": "Escribir guion",
-	"status": "FINALIZADA"
-}
-```
-
-El error controlado tiene esta forma:
-
-```json
-{
-	"status": 400,
-	"error": "Bad Request",
-	"message": "El estado debe ser PENDIENTE, EN_PROGRESO o COMPLETADA"
-}
-```
-
-Las pruebas automatizadas equivalentes están en `BusinessRulesIntegrationTests` y se ejecutan con `./mvnw.cmd test`.
-
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
-
-Currently, two official plugins are available:
-
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
-
-## React Compiler
-
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+La solicitud de generación incluye actualmente los campos del contrato de proyecto disponible (`usuarioId`, `nombre`, `modeloIa`, `costoCreditos`, `duracionSeg`). El prompt, estilo y formato se administran en la interfaz; deberán añadirse al contrato del backend antes de persistirlos o enviarlos a un proveedor real. No se conecta ni se simula una generación de video real.

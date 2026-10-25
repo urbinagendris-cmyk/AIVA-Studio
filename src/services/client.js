@@ -30,7 +30,7 @@ export async function apiClient(endpoint, { body, ...customConfig } = {}) {
   try {
     response = await fetch(`${API_BASE_URL}${endpoint}`, config);
   } catch (networkError) {
-    throw new Error('No se pudo conectar con el servidor de AIVA Studio (Spring Boot).');
+    throw new Error('No se pudo conectar con el servidor de AIVA Studio (Spring Boot).', { cause: networkError });
   }
 
   const data = await response.json().catch(() => ({}));
