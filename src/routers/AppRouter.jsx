@@ -1,10 +1,11 @@
 import { createBrowserRouter, Navigate } from "react-router-dom";
 import MainLayout from "../components/MainLayout";
+import Home from "../pages/Home";
 import StudioWorkspace from "../pages/StudioWorkspace";
 
-// Si aún no has creado Login o Registro, dejamos vistas placeholder temporales:
-const Login = () => <div className="p-8 text-center">Página de Inicio de Sesión</div>;
-const Registro = () => <div className="p-8 text-center">Página de Registro</div>;
+// Vistas secundarias / temporales
+const Login = () => <div className="p-8 text-center text-slate-300">Página de Inicio de Sesión</div>;
+const Registro = () => <div className="p-8 text-center text-slate-300">Página de Registro</div>;
 
 export const AppRouter = createBrowserRouter([
   {
@@ -13,6 +14,10 @@ export const AppRouter = createBrowserRouter([
     children: [
       {
         index: true,
+        element: <Home />,
+      },
+      {
+        path: "workspace",
         element: <StudioWorkspace />,
       },
       {
@@ -30,3 +35,5 @@ export const AppRouter = createBrowserRouter([
     ],
   },
 ]);
+
+export default AppRouter;

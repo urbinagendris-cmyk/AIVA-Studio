@@ -1,8 +1,10 @@
 import { useState } from "react";
+import Swal from "sweetalert2";
 import { mockUsuario, mockModelosIA, mockProyectos } from "../data/mocks";
+import Card from "../components/Card";
 
-export function Main() {
-  // Estados para simular la persistencia y reglas de negocio
+export const Home = () => {
+  // Estado local para persistencia simulada
   const [usuario, setUsuario] = useState(mockUsuario);
   const [proyectos, setProyectos] = useState(mockProyectos);
 
@@ -10,34 +12,43 @@ export function Main() {
   const [nombreProyecto, setNombreProyecto] = useState("");
   const [modeloSeleccionado, setModeloSeleccionado] = useState(mockModelosIA[0].id);
   const [duracion, setDuracion] = useState(15);
-  const [mensajeError, setMensajeError] = useState("");
 
   // Estado para formulario de recarga
   const [montoRecarga, setMontoRecarga] = useState(500);
-  const [mensajeRecarga, setMensajeRecarga] = useState("");
 
-  // Modelo actualmente seleccionado para cálculos
+  // Modelo actual y costo calculado
   const modeloActual = mockModelosIA.find((m) => m.id === modeloSeleccionado) || mockModelosIA[0];
   const costoCalculado = duracion * modeloActual.costoPorSegundo;
 
-  // Lógica Regla 1: Crear Proyecto de Renderizado y Descontar Créditos
+  // Regla 1: Crear Proyecto de Renderizado y Descontar Créditos
   const handleCrearProyecto = (e) => {
     e.preventDefault();
-    setMensajeError("");
 
     if (!nombreProyecto.trim()) {
-      setMensajeError("Debe asignar un nombre al proyecto.");
+      Swal.fire({
+        icon: "warning",
+        title: "Campo requerido",
+        text: "Debe asignar un nombre al proyecto.",
+        background: "#1e293b",
+        color: "#f8fafc",
+        confirmButtonColor: "#6366f1",
+      });
       return;
     }
 
     if (usuario.creditosDisponibles < costoCalculado) {
-      setMensajeError(
-        `Créditos insuficientes. Requieres ${costoCalculado} y dispones de ${usuario.creditosDisponibles}.`
-      );
+      Swal.fire({
+        icon: "error",
+        title: "Créditos insuficientes",
+        text: `Requieres ${costoCalculado} créditos y dispones de ${usuario.creditosDisponibles}.`,
+        background: "#1e293b",
+        color: "#f8fafc",
+        confirmButtonColor: "#ef4444",
+      });
       return;
     }
 
-    // Descontar saldo del usuario
+    // Descontar saldo
     setUsuario((prev) => ({
       ...prev,
       creditosDisponibles: prev.creditosDisponibles - costoCalculado,
@@ -58,16 +69,33 @@ export function Main() {
 
     setProyectos([nuevoProyecto, ...proyectos]);
     setNombreProyecto("");
+
+    Swal.fire({
+      icon: "success",
+      title: "¡Proyecto enviado!",
+      text: `El video "${nombreProyecto}" entró a cola de renderizado.`,
+      background: "#1e293b",
+      color: "#f8fafc",
+      confirmButtonColor: "#6366f1",
+      timer: 2000,
+      showConfirmButton: false,
+    });
   };
 
-  // Lógica Regla 2: Recarga de Créditos con Bonificación (+20% si >= 500)
+  // Regla 2: Recarga con Bonificación (+20% si >= 500)
   const handleRecargarCreditos = (e) => {
     e.preventDefault();
-    setMensajeRecarga("");
 
     const cantidad = Number(montoRecarga);
     if (cantidad <= 0) {
-      setMensajeRecarga("El valor a recargar debe ser mayor a 0.");
+      Swal.fire({
+        icon: "warning",
+        title: "Monto inválido",
+        text: "El valor a recargar debe ser mayor a 0.",
+        background: "#1e293b",
+        color: "#f8fafc",
+        confirmButtonColor: "#6366f1",
+      });
       return;
     }
 
@@ -84,16 +112,20 @@ export function Main() {
       creditosDisponibles: prev.creditosDisponibles + creditosFinales,
     }));
 
-    setMensajeRecarga(
-      `¡Recarga exitosa! Se agregaron ${creditosFinales} créditos${
+    Swal.fire({
+      icon: "success",
+      title: "Recarga exitosa",
+      text: `Se agregaron ${creditosFinales} créditos${
         bonoAplicado ? " (incluye bono del 20%)" : ""
-      }.`
-    );
+      }.`,
+      background: "#1e293b",
+      color: "#f8fafc",
+      confirmButtonColor: "#10b981",
+    });
   };
 
   return (
-    <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-10 text-slate-100">
-      
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-10 text-slate-100">
       {/* Encabezado Principal y Saldo */}
       <section className="bg-slate-800/80 border border-slate-700 rounded-2xl p-6 sm:p-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-6 shadow-lg">
         <div>
@@ -119,18 +151,11 @@ export function Main() {
 
       {/* Grid: Formulario de Generación + Panel de Recargas */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        
-        {/* Formulario Crear Proyecto (Regla 1) */}
+        {/* Formulario Crear Proyecto */}
         <section className="lg:col-span-2 bg-slate-800/60 border border-slate-700 rounded-2xl p-6 shadow-sm">
           <h2 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
             <span>🎬</span> Nueva Generación de Video
           </h2>
-
-          {mensajeError && (
-            <div className="mb-4 p-3 rounded-lg bg-rose-500/10 border border-rose-500/30 text-rose-400 text-sm">
-              {mensajeError}
-            </div>
-          )}
 
           <form onSubmit={handleCrearProyecto} className="space-y-4">
             <div>
@@ -195,7 +220,7 @@ export function Main() {
           </form>
         </section>
 
-        {/* Panel de Recarga de Créditos (Regla 2) */}
+        {/* Panel de Recarga de Créditos */}
         <section className="bg-slate-800/60 border border-slate-700 rounded-2xl p-6 shadow-sm flex flex-col justify-between">
           <div>
             <h2 className="text-lg font-bold text-white mb-2 flex items-center gap-2">
@@ -204,12 +229,6 @@ export function Main() {
             <p className="text-xs text-slate-400 mb-4">
               Bonificación automática: Si recargas <strong>500 créditos o más</strong>, obtienes un <strong>20% extra</strong> de cortesía.
             </p>
-
-            {mensajeRecarga && (
-              <div className="mb-4 p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs">
-                {mensajeRecarga}
-              </div>
-            )}
 
             <form onSubmit={handleRecargarCreditos} className="space-y-4">
               <div>
@@ -245,51 +264,20 @@ export function Main() {
             </form>
           </div>
         </section>
-
       </div>
 
-      {/* Lista / Galería de Proyectos */}
+      {/* Lista / Galería mapeando el componente Card */}
       <section className="space-y-4">
         <h2 className="text-xl font-bold text-white">Tus Proyectos de Video</h2>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {proyectos.map((p) => (
-            <div
-              key={p.id}
-              className="bg-slate-800 border border-slate-700 rounded-xl overflow-hidden shadow-sm hover:border-slate-600 transition-all flex flex-col"
-            >
-              <img
-                src={p.urlPreview}
-                alt={p.nombre}
-                className="w-full h-36 object-cover opacity-80 hover:opacity-100 transition-opacity"
-              />
-              <div className="p-4 flex-1 flex flex-col justify-between">
-                <div>
-                  <div className="flex justify-between items-start gap-2 mb-1">
-                    <h3 className="font-semibold text-white text-base truncate">{p.nombre}</h3>
-                    <span
-                      className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded-full border ${
-                        p.estado === "FINALIZADO"
-                          ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
-                          : "bg-amber-500/10 text-amber-400 border-amber-500/20"
-                      }`}
-                    >
-                      {p.estado}
-                    </span>
-                  </div>
-                  <p className="text-xs text-indigo-400 font-medium">{p.modeloIa}</p>
-                </div>
-
-                <div className="mt-4 pt-3 border-t border-slate-700/60 flex justify-between items-center text-xs text-slate-400">
-                  <span>⏱ {p.duracionSeg} seg</span>
-                  <span>⚡ {p.costoCreditos} cr</span>
-                </div>
-              </div>
-            </div>
+            <Card key={p.id} proyecto={p} />
           ))}
         </div>
       </section>
-
-    </main>
+    </div>
   );
-}
+};
+
+export default Home;
