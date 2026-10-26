@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { mockModelosIA } from '../data/mocks'
-import { aivaApi } from '../services/api'
-import './studio-workspace.css'
+import { aivaApi } from '../api/api'
+import '../components/studio-workspace.css'
 
 const initialProjects = [
   {
@@ -505,7 +505,18 @@ function PreferencesView({ user }) {
   )
 }
 
-export function StudioWorkspace({ user, setUser, onLogout }) {
+export function StudioWorkspace({ user: propUser, setUser: propSetUser, onLogout: propLogout }) {
+  const [internalUser, setInternalUser] = useState({
+    id: 1,
+    nombre: 'Andrés Rojas',
+    email: 'creador@aiva.studio',
+    creditosDisponibles: 120,
+  })
+
+  const user = propUser || internalUser
+  const setUser = propSetUser || setInternalUser
+  const onLogout = propLogout || (() => window.location.href = '/login')
+
   const [active, setActive] = useState('Resumen')
   const [projects, setProjects] = useState(initialProjects)
   const [transactions, setTransactions] = useState(() => getInitialTransactions(user?.creditosDisponibles ?? 0))
@@ -644,3 +655,5 @@ export function StudioWorkspace({ user, setUser, onLogout }) {
     </div>
   )
 }
+
+export default StudioWorkspace

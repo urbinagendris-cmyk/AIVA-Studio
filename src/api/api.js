@@ -1,6 +1,6 @@
-import { authService } from './authService';
-import { proyectoService } from './proyectoService';
-import { usuarioService } from './usuarioService';
+import { authService } from '../services/authService';
+import { proyectoService } from '../services/proyectoService';
+import { usuarioService } from '../services/usuarioService';
 
 export { authService, proyectoService, usuarioService };
 
