@@ -19,6 +19,11 @@ export const proyectoService = {
 
   // Listar proyectos del usuario (GET /api/aiva/proyectos/usuario/:id)
   listarPorUsuario: async (usuarioId) => {
+    if (!usuarioId) {
+      throw new Error('Se requiere el identificador de usuario para consultar los proyectos.');
+    }
     return await apiClient(`/aiva/proyectos/usuario/${usuarioId}`);
   },
 };
+
+export default proyectoService;

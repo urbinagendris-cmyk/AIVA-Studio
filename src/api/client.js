@@ -33,6 +33,11 @@ export async function apiClient(endpoint, { body, ...customConfig } = {}) {
     throw new Error('No se pudo conectar con el servidor de AIVA Studio (Spring Boot).', { cause: networkError });
   }
 
+  // Si la respuesta es 204 No Content, retornamos éxito directo sin parsear JSON
+  if (response.status === 204) {
+    return null;
+  }
+
   const data = await response.json().catch(() => ({}));
 
   if (!response.ok) {
@@ -41,3 +46,5 @@ export async function apiClient(endpoint, { body, ...customConfig } = {}) {
 
   return data;
 }
+
+export default apiClient;

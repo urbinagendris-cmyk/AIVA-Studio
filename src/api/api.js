@@ -1,6 +1,6 @@
-import { authService } from '../services/authService';
-import { proyectoService } from '../services/proyectoService';
-import { usuarioService } from '../services/usuarioService';
+import { authService } from './authService';
+import { proyectoService } from './proyectoService';
+import { usuarioService } from './usuarioService';
 
 export { authService, proyectoService, usuarioService };
 
@@ -19,3 +19,5 @@ export const aivaApi = {
   recargarCreditos: usuarioService.recargarCreditos,
   obtenerPerfil: usuarioService.obtenerPerfil,
 };
+
+export default aivaApi;

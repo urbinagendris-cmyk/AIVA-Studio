@@ -24,3 +24,5 @@ export const authService = {
     localStorage.removeItem('aiva_token');
   },
 };
+
+export default authService;
