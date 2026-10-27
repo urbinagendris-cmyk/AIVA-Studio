@@ -2,10 +2,8 @@ import { createBrowserRouter, Navigate } from "react-router-dom";
 import MainLayout from "../components/MainLayout";
 import Home from "../pages/Home";
 import StudioWorkspace from "../pages/StudioWorkspace";
-
-// Vistas secundarias / temporales
-const Login = () => <div className="p-8 text-center text-slate-300">Página de Inicio de Sesión</div>;
-const Registro = () => <div className="p-8 text-center text-slate-300">Página de Registro</div>;
+import Login from "../pages/Login";
+import Registro from "../pages/Registro";
 
 export const AppRouter = createBrowserRouter([
   {
@@ -28,6 +26,24 @@ export const AppRouter = createBrowserRouter([
         path: "registro",
         element: <Registro />,
       },
+      // Enlaces del Aside / Header que dirigen al espacio de trabajo
+      {
+        path: "proyectos",
+        element: <StudioWorkspace />,
+      },
+      {
+        path: "modelos",
+        element: <StudioWorkspace />,
+      },
+      {
+        path: "creditos",
+        element: <Home />,
+      },
+      {
+        path: "preferencias",
+        element: <StudioWorkspace />,
+      },
+      // Redirección para cualquier ruta no encontrada
       {
         path: "*",
         element: <Navigate to="/" replace />,
