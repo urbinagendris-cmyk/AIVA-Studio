@@ -2,6 +2,13 @@ import { useState } from "react";
 import Swal from "sweetalert2";
 import { mockUsuario, mockModelosIA, mockProyectos } from "../data/mocks";
 import Card from "../components/Card";
+import { aivaApi } from "../api/api";
+import {
+  calculateRenderCost,
+  calculateCreditRecharge,
+  hasSufficientCredits,
+  formatCredits,
+} from "../helpers/businessRules";
 
 export const Home = () => {
   // Estado local para persistencia simulada
@@ -12,16 +19,18 @@ export const Home = () => {
   const [nombreProyecto, setNombreProyecto] = useState("");
   const [modeloSeleccionado, setModeloSeleccionado] = useState(mockModelosIA[0].id);
   const [duracion, setDuracion] = useState(15);
+  const [cargando, setCargando] = useState(false);
 
   // Estado para formulario de recarga
   const [montoRecarga, setMontoRecarga] = useState(500);
 
-  // Modelo actual y costo calculado
+  // Modelo actual y cálculo centralizado vía helper
   const modeloActual = mockModelosIA.find((m) => m.id === modeloSeleccionado) || mockModelosIA[0];
-  const costoCalculado = duracion * modeloActual.costoPorSegundo;
+  const costoCalculado = calculateRenderCost(duracion, modeloActual.costoPorSegundo);
+  const recargaCalculada = calculateCreditRecharge(montoRecarga);
 
   // Regla 1: Crear Proyecto de Renderizado y Descontar Créditos
-  const handleCrearProyecto = (e) => {
+  const handleCrearProyecto = async (e) => {
     e.preventDefault();
 
     if (!nombreProyecto.trim()) {
@@ -36,11 +45,11 @@ export const Home = () => {
       return;
     }
 
-    if (usuario.creditosDisponibles < costoCalculado) {
+    if (!hasSufficientCredits(usuario.creditosDisponibles, costoCalculado)) {
       Swal.fire({
         icon: "error",
         title: "Créditos insuficientes",
-        text: `Requieres ${costoCalculado} créditos y dispones de ${usuario.creditosDisponibles}.`,
+        text: `Requieres ${formatCredits(costoCalculado)} créditos y dispones de ${formatCredits(usuario.creditosDisponibles)}.`,
         background: "#1e293b",
         color: "#f8fafc",
         confirmButtonColor: "#ef4444",
@@ -48,16 +57,33 @@ export const Home = () => {
       return;
     }
 
-    // Descontar saldo
+    setCargando(true);
+
+    try {
+      // Intento de guardado en la API Spring Boot
+      await aivaApi.crearProyecto({
+        usuarioId: usuario.id,
+        nombre: nombreProyecto.trim(),
+        modeloIa: modeloActual.nombre,
+        costoCreditos: costoCalculado,
+        duracionSeg: Number(duracion),
+      });
+    } catch {
+      // Modo fallback demostrativo para desarrollo local
+      console.warn("API no disponible, operando en modo local.");
+    } finally {
+      setCargando(false);
+    }
+
+    // Descontar saldo y registrar en estado
     setUsuario((prev) => ({
       ...prev,
       creditosDisponibles: prev.creditosDisponibles - costoCalculado,
     }));
 
-    // Registrar nuevo proyecto
     const nuevoProyecto = {
       id: Date.now(),
-      nombre: nombreProyecto,
+      nombre: nombreProyecto.trim(),
       modeloIa: modeloActual.nombre,
       costoCreditos: costoCalculado,
       duracionSeg: Number(duracion),
@@ -83,7 +109,7 @@ export const Home = () => {
   };
 
   // Regla 2: Recarga con Bonificación (+20% si >= 500)
-  const handleRecargarCreditos = (e) => {
+  const handleRecargarCreditos = async (e) => {
     e.preventDefault();
 
     const cantidad = Number(montoRecarga);
@@ -99,24 +125,22 @@ export const Home = () => {
       return;
     }
 
-    let creditosFinales = cantidad;
-    let bonoAplicado = false;
-
-    if (cantidad >= 500) {
-      creditosFinales += Math.floor(cantidad * 0.2);
-      bonoAplicado = true;
+    try {
+      await aivaApi.recargarCreditos(usuario.id, cantidad);
+    } catch {
+      console.warn("API de recargas no disponible, aplicando crédito localmente.");
     }
 
     setUsuario((prev) => ({
       ...prev,
-      creditosDisponibles: prev.creditosDisponibles + creditosFinales,
+      creditosDisponibles: prev.creditosDisponibles + recargaCalculada.total,
     }));
 
     Swal.fire({
       icon: "success",
       title: "Recarga exitosa",
-      text: `Se agregaron ${creditosFinales} créditos${
-        bonoAplicado ? " (incluye bono del 20%)" : ""
+      text: `Se agregaron ${formatCredits(recargaCalculada.total)} créditos${
+        recargaCalculada.hasBonus ? ` (incluye bono de ${formatCredits(recargaCalculada.bonus)} cr)` : ""
       }.`,
       background: "#1e293b",
       color: "#f8fafc",
@@ -140,7 +164,7 @@ export const Home = () => {
           <div>
             <span className="text-xs text-slate-400 block font-medium uppercase">Saldo Actual</span>
             <span className="text-xl font-bold text-amber-400 flex items-center gap-1">
-              ⚡ {usuario.creditosDisponibles} <span className="text-xs text-slate-400">créditos</span>
+              ⚡ {formatCredits(usuario.creditosDisponibles)} <span className="text-xs text-slate-400">créditos</span>
             </span>
           </div>
           <span className="px-2.5 py-1 text-xs rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-semibold">
@@ -208,14 +232,15 @@ export const Home = () => {
             {/* Resumen del Costo */}
             <div className="bg-slate-900/80 border border-slate-700/60 p-3 rounded-lg flex justify-between items-center text-xs">
               <span className="text-slate-400">Costo estimado de render:</span>
-              <span className="font-bold text-amber-400 text-sm">{costoCalculado} Créditos</span>
+              <span className="font-bold text-amber-400 text-sm">{formatCredits(costoCalculado)} Créditos</span>
             </div>
 
             <button
               type="submit"
-              className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-semibold py-2.5 px-4 rounded-lg transition-colors shadow-sm text-sm"
+              disabled={cargando}
+              className="w-full bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white font-semibold py-2.5 px-4 rounded-lg transition-colors shadow-sm text-sm"
             >
-              Comenzar Renderizado
+              {cargando ? "Enviando a la cola..." : "Comenzar Renderizado"}
             </button>
           </form>
         </section>
@@ -248,10 +273,10 @@ export const Home = () => {
               <div className="text-xs text-slate-400 bg-slate-900/50 p-2.5 rounded-lg border border-slate-700/50">
                 Total a recibir:{" "}
                 <span className="font-bold text-white">
-                  {Number(montoRecarga) >= 500
-                    ? Number(montoRecarga) + Math.floor(Number(montoRecarga) * 0.2)
-                    : Number(montoRecarga)}{" "}
-                  créditos
+                  {formatCredits(recargaCalculada.total)} créditos{" "}
+                  {recargaCalculada.hasBonus && (
+                    <small className="text-emerald-400">(+{formatCredits(recargaCalculada.bonus)} bono)</small>
+                  )}
                 </span>
               </div>
 

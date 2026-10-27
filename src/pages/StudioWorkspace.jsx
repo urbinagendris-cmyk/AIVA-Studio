@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { mockModelosIA } from '../data/mocks'
 import { aivaApi } from '../api/api'
+import { calculateCreditRecharge, calculateRenderCost, formatCredits } from '../helpers/businessRules'
 import '../components/studio-workspace.css'
 
 const initialProjects = [
@@ -190,7 +191,7 @@ function ProjectCard({ project, onOpen }) {
       </div>
       <div className="project-extra">
         <span>{model?.nombre || project.modelName || 'Modelo AIVA'}</span>
-        <span>{project.format || '16:9'} · ⚡ {project.costoCreditos} cr</span>
+        <span>{project.format || '16:9'} · ⚡ {formatCredits(project.costoCreditos)} cr</span>
       </div>
     </article>
   )
@@ -209,7 +210,7 @@ function VideoCreatorModal({ onClose, onCreate, creditosDisponibles, initialMode
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const model = mockModelosIA.find((item) => item.id === brief.modelId) || mockModelosIA[0]
-  const cost = brief.duration * model.costoPorSegundo
+  const cost = calculateRenderCost(brief.duration, model.costoPorSegundo)
 
   function updateBrief(key, value) {
     setBrief((current) => ({ ...current, [key]: value }))
@@ -226,7 +227,7 @@ function VideoCreatorModal({ onClose, onCreate, creditosDisponibles, initialMode
       return
     }
     if (step === 2 && cost > creditosDisponibles) {
-      setError(`Te faltan ${cost - creditosDisponibles} créditos para este render.`)
+      setError(`Te faltan ${formatCredits(cost - creditosDisponibles)} créditos para este render.`)
       return
     }
     if (step < 3) {
@@ -304,8 +305,8 @@ function VideoCreatorModal({ onClose, onCreate, creditosDisponibles, initialMode
                 </button>
               ))}
             </div>
-            <div className="cost-estimate"><span>Estimado · {model.costoPorSegundo} créditos × {brief.duration} s</span><strong>⚡ {cost} créditos</strong></div>
-            {cost > creditosDisponibles && <p className="creator-error">Saldo disponible: {creditosDisponibles} créditos. Reduce la duración o cambia de modelo.</p>}
+            <div className="cost-estimate"><span>Estimado · {model.costoPorSegundo} créditos × {brief.duration} s</span><strong>⚡ {formatCredits(cost)} créditos</strong></div>
+            {cost > creditosDisponibles && <p className="creator-error">Saldo disponible: {formatCredits(creditosDisponibles)} créditos. Reduce la duración o cambia de modelo.</p>}
           </>
         )}
 
@@ -318,7 +319,7 @@ function VideoCreatorModal({ onClose, onCreate, creditosDisponibles, initialMode
               <div><small>MODELO</small><strong>{model.nombre}</strong></div>
               <div><small>FORMATO Y DURACIÓN</small><strong>{brief.format} · {brief.duration} segundos · {brief.style}</strong></div>
               <div><small>PROMPT</small><p>{brief.prompt}</p></div>
-              <div className="cost-estimate"><span>Se descontarán de tu saldo</span><strong>⚡ {cost} créditos</strong></div>
+              <div className="cost-estimate"><span>Se descontarán de tu saldo</span><strong>⚡ {formatCredits(cost)} créditos</strong></div>
             </div>
             <p className="demo-callout">La interfaz guardará esta solicitud como una demostración. La generación real se conectará desde el backend.</p>
           </>
@@ -351,7 +352,7 @@ function ProjectDetailsModal({ project, onClose }) {
           <div><dt>Modelo IA</dt><dd>{model?.nombre || project.modelName || 'Modelo AIVA'}</dd></div>
           <div><dt>Duración</dt><dd>{project.duration} segundos</dd></div>
           <div><dt>Formato</dt><dd>{project.format || '16:9'}</dd></div>
-          <div><dt>Créditos usados</dt><dd>⚡ {project.costoCreditos}</dd></div>
+          <div><dt>Créditos usados</dt><dd>⚡ {formatCredits(project.costoCreditos)}</dd></div>
           <div><dt>Estilo</dt><dd>{project.style || 'Cinematográfico'}</dd></div>
         </dl>
         <div className="prompt-preview"><small>PROMPT</small><p>{project.prompt || 'Este proyecto no incluye un prompt guardado.'}</p></div>
@@ -386,7 +387,7 @@ function SummaryView({ user, projects, onCreate, onNavigate, onOpenProject }) {
         <article className="metric-card"><span className="metric-icon peach"><StudioIcon name="folder" /></span><div><small>PROYECTOS</small><strong>{projects.length}</strong><span>en tu biblioteca</span></div></article>
         <article className="metric-card"><span className="metric-icon mint"><StudioIcon name="play" /></span><div><small>VIDEOS LISTOS</small><strong>{completed}</strong><span>listos para revisar</span></div></article>
         <article className="metric-card"><span className="metric-icon lilac"><StudioIcon name="clock" /></span><div><small>EN PROCESO</small><strong>{processing}</strong><span>en cola de generación</span></div></article>
-        <article className="metric-card"><span className="metric-icon gold">⚡</span><div><small>CRÉDITOS</small><strong>{user?.creditosDisponibles ?? 0}</strong><span>disponibles para crear</span></div></article>
+        <article className="metric-card"><span className="metric-icon gold">⚡</span><div><small>CRÉDITOS</small><strong>{formatCredits(user?.creditosDisponibles ?? 0)}</strong><span>disponibles para crear</span></div></article>
       </section>
       <section className="projects-section">
         <div className="section-heading">
@@ -399,7 +400,7 @@ function SummaryView({ user, projects, onCreate, onNavigate, onOpenProject }) {
         </div>
       </section>
       <section className="usage-row">
-        <div className="usage-copy"><span className="usage-icon"><StudioIcon name="spark" /></span><div><b>Tu saldo en el estudio</b><p>Tienes {user?.creditosDisponibles ?? 0} créditos listos para renderizar.</p></div></div>
+        <div className="usage-copy"><span className="usage-icon"><StudioIcon name="spark" /></span><div><b>Tu saldo en el estudio</b><p>Tienes {formatCredits(user?.creditosDisponibles ?? 0)} créditos listos para renderizar.</p></div></div>
         <div className="usage-bar"><span style={{ width: `${Math.min(100, ((user?.creditosDisponibles || 0) / 500) * 100)}%` }} /></div>
         <button onClick={() => onNavigate('Créditos')}>Ver créditos <StudioIcon name="arrow" /></button>
       </section>
@@ -462,14 +463,14 @@ function ModelsView({ onChooseModel }) {
 
 function CreditsView({ user, onRecharge, transactions }) {
   const [amount, setAmount] = useState(500)
-  const bonus = Number(amount) >= 500 ? Math.floor(Number(amount) * 0.2) : 0
+  const rechargeCalc = calculateCreditRecharge(amount)
 
   return (
     <>
       <PageHeading eyebrow="TU CUENTA" title="Créditos y consumo" description="Consulta tu saldo y revisa el historial de actividad de tu estudio." />
       <div className="credits-layout">
         <section className="credits-balance">
-          <p className="eyebrow">SALDO DISPONIBLE</p><strong>⚡ {user?.creditosDisponibles ?? 0}</strong><span>créditos para tus proyectos</span>
+          <p className="eyebrow">SALDO DISPONIBLE</p><strong>⚡ {formatCredits(user?.creditosDisponibles ?? 0)}</strong><span>créditos para tus proyectos</span>
           <div className="credits-progress"><span style={{ width: `${Math.min(100, ((user?.creditosDisponibles || 0) / 1000) * 100)}%` }} /></div>
           <small>La recarga con bono es una simulación de interfaz hasta integrar pagos.</small>
         </section>
@@ -477,14 +478,25 @@ function CreditsView({ user, onRecharge, transactions }) {
           <div><p className="eyebrow">RECARGA DE PRUEBA</p><h2>Más créditos, más historias.</h2><p>Las recargas de 500 créditos o más muestran un bono promocional del 20%.</p></div>
           <label htmlFor="credit-amount">Cantidad de créditos</label>
           <input id="credit-amount" type="number" min="50" step="50" value={amount} onChange={(event) => setAmount(event.target.value)} />
-          <div className="recharge-total"><span>Recibirás</span><strong>{Math.max(0, Number(amount) || 0) + bonus} créditos {bonus > 0 && <small>(+{bonus} bono)</small>}</strong></div>
+          <div className="recharge-total">
+            <span>Recibirás</span>
+            <strong>
+              {formatCredits(rechargeCalc.total)} créditos {rechargeCalc.hasBonus && <small>(+{formatCredits(rechargeCalc.bonus)} bono)</small>}
+            </strong>
+          </div>
           <button className="primary-button create-button" onClick={() => onRecharge(Number(amount))} disabled={!Number(amount) || Number(amount) < 50}>Simular recarga</button>
         </section>
       </div>
       <section className="workspace-panel transaction-panel">
         <div className="section-heading"><div><h2>Actividad reciente</h2><p>Movimientos de créditos de tu cuenta.</p></div></div>
         <div className="transaction-list">
-          {transactions.map((item) => <div className="transaction-row" key={item.id}><span className={`transaction-icon ${item.amount > 0 ? 'added' : 'used'}`}>{item.amount > 0 ? '+' : '−'}</span><span className="transaction-label"><b>{item.label}</b><small>{item.date}</small></span><strong className={item.amount > 0 ? 'positive' : ''}>{item.amount > 0 ? '+' : ''}{item.amount} cr</strong></div>)}
+          {transactions.map((item) => (
+            <div className="transaction-row" key={item.id}>
+              <span className={`transaction-icon ${item.amount > 0 ? 'added' : 'used'}`}>{item.amount > 0 ? '+' : '−'}</span>
+              <span className="transaction-label"><b>{item.label}</b><small>{item.date}</small></span>
+              <strong className={item.amount > 0 ? 'positive' : ''}>{item.amount > 0 ? '+' : ''}{item.amount} cr</strong>
+            </div>
+          ))}
         </div>
       </section>
     </>
@@ -585,7 +597,9 @@ export function StudioWorkspace({ user: propUser, setUser: propSetUser, onLogout
       setNoticeType('warning')
       return
     }
-    const bonus = amount >= 500 ? Math.floor(amount * 0.2) : 0
+
+    const rechargeCalc = calculateCreditRecharge(amount)
+
     try {
       await aivaApi.recargarCreditos(user.id, amount)
       setNotice('La recarga se registró en la API. El pago real requiere integración con una pasarela.')
@@ -594,9 +608,17 @@ export function StudioWorkspace({ user: propUser, setUser: propSetUser, onLogout
       setNotice(`Modo demostración: la API de créditos no está disponible (${error.message}). El saldo solo se actualizará en esta sesión.`)
       setNoticeType('warning')
     }
-    const added = amount + bonus
-    setUser((current) => ({ ...current, creditosDisponibles: current.creditosDisponibles + added }))
-    setTransactions((current) => [{ id: Date.now(), label: bonus ? `Recarga de prueba (+${bonus} bono)` : 'Recarga de prueba', date: 'Ahora', amount: added }, ...current])
+
+    setUser((current) => ({ ...current, creditosDisponibles: current.creditosDisponibles + rechargeCalc.total }))
+    setTransactions((current) => [
+      {
+        id: Date.now(),
+        label: rechargeCalc.hasBonus ? `Recarga de prueba (+${formatCredits(rechargeCalc.bonus)} bono)` : 'Recarga de prueba',
+        date: 'Ahora',
+        amount: rechargeCalc.total,
+      },
+      ...current,
+    ])
   }
 
   function chooseModel(modelId) {
@@ -620,7 +642,7 @@ export function StudioWorkspace({ user: propUser, setUser: propSetUser, onLogout
           <div className="breadcrumbs"><span>Estudio</span><b>/</b><strong>{activeTitle}</strong></div>
           <div className="header-actions">
             <span className="studio-mode">FRONTEND DEMO</span>
-            <div className="header-user"><span className="avatar avatar-yellow">{(user?.nombre || 'AR').slice(0, 2).toUpperCase()}</span><span><b>{user?.nombre || 'Andrés Rojas'}</b><small>⚡ {user?.creditosDisponibles ?? 0} cr</small></span></div>
+            <div className="header-user"><span className="avatar avatar-yellow">{(user?.nombre || 'AR').slice(0, 2).toUpperCase()}</span><span><b>{user?.nombre || 'Andrés Rojas'}</b><small>⚡ {formatCredits(user?.creditosDisponibles ?? 0)} cr</small></span></div>
           </div>
         </header>
         <nav className="mobile-studio-nav" aria-label="Navegación móvil">
