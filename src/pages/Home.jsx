@@ -1,7 +1,7 @@
 import { useState } from "react";
 import Swal from "sweetalert2";
 import { mockUsuario, mockModelosIA, mockProyectos } from "../data/mocks";
-import Card from "../components/Card";
+import Card from "../components/Cards";
 import { aivaApi } from "../api/api";
 import {
   calculateRenderCost,
@@ -9,6 +9,8 @@ import {
   hasSufficientCredits,
   formatCredits,
 } from "../helpers/businessRules";
+
+const createProjectId = () => Date.now();
 
 export const Home = () => {
   // Estado local para persistencia simulada
@@ -82,7 +84,7 @@ export const Home = () => {
     }));
 
     const nuevoProyecto = {
-      id: Date.now(),
+      id: createProjectId(),
       nombre: nombreProyecto.trim(),
       modeloIa: modeloActual.nombre,
       costoCreditos: costoCalculado,

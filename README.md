@@ -23,6 +23,8 @@ npm install
 npm run dev
 ```
 
+También puedes iniciar Vite con `npm start`. Tailwind CSS 4 se procesa mediante el plugin de Vite y los estilos globales se cargan desde `src/index.css`.
+
 Comandos disponibles:
 
 ```bash

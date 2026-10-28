@@ -21,7 +21,7 @@ export function Header() {
 
           {/* Navegación Principal */}
           <nav className="hidden md:flex space-x-6 text-sm font-medium">
-            <Link to="/" className="text-slate-300 hover:text-indigo-400 transition-colors">
+            <Link to="/proyectos" className="text-slate-300 hover:text-indigo-400 transition-colors">
               Proyectos
             </Link>
             <Link to="/modelos" className="text-slate-300 hover:text-indigo-400 transition-colors">

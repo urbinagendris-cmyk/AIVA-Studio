@@ -5,7 +5,7 @@ import StudioWorkspace from "../pages/StudioWorkspace";
 import Login from "../pages/Login";
 import Registro from "../pages/Registro";
 
-export const AppRouter = createBrowserRouter([
+const AppRouter = createBrowserRouter([
   {
     path: "/",
     element: <MainLayout />,
@@ -37,7 +37,7 @@ export const AppRouter = createBrowserRouter([
       },
       {
         path: "creditos",
-        element: <Home />,
+        element: <StudioWorkspace />,
       },
       {
         path: "preferencias",

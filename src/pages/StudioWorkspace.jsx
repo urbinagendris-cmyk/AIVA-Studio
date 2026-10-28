@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { useLocation } from 'react-router-dom'
 import { mockModelosIA } from '../data/mocks'
 import { aivaApi } from '../api/api'
 import { calculateCreditRecharge, calculateRenderCost, formatCredits } from '../helpers/businessRules'
@@ -412,19 +413,32 @@ function ProjectsView({ projects, onCreate, onOpenProject }) {
   const [query, setQuery] = useState('')
   const [status, setStatus] = useState('Todos')
   const filters = ['Todos', 'En cola', 'Generando', 'Listo', 'Borrador', 'Fallido']
+  const statusCounts = filters.reduce((counts, item) => {
+    counts[item] = item === 'Todos'
+      ? projects.length
+      : projects.filter((project) => project.status === item).length
+    return counts
+  }, {})
   const filteredProjects = projects.filter((project) => {
-    const matchesQuery = `${project.title} ${project.type} ${project.prompt || ''}`.toLowerCase().includes(query.toLowerCase())
+    const matchesQuery = `${project.title || ''} ${project.type || ''} ${project.modelName || ''} ${project.prompt || ''}`.toLowerCase().includes(query.toLowerCase())
     return matchesQuery && (status === 'Todos' || project.status === status)
   })
 
   return (
     <>
-      <PageHeading eyebrow="BIBLIOTECA" title="Mis proyectos" description="Organiza tus ideas y sigue el estado de cada generación." action={<button className="primary-button create-button" onClick={onCreate}><StudioIcon name="plus" />Nuevo video</button>} />
+      <PageHeading eyebrow="TU BIBLIOTECA CREATIVA" title="Mis proyectos" description="Encuentra tus creaciones, revisa su estado y continúa trabajando en tus ideas." action={<button className="primary-button create-button" onClick={onCreate}><StudioIcon name="plus" />Nuevo video</button>} />
       <section className="workspace-panel">
+        <div className="projects-overview" aria-label="Resumen de proyectos">
+          <div><strong>{projects.length}</strong><span>Proyectos</span></div>
+          <div><strong>{statusCounts.Listo}</strong><span>Listos</span></div>
+          <div><strong>{statusCounts.Generando + statusCounts['En cola']}</strong><span>En proceso</span></div>
+          <div><strong>{statusCounts.Borrador}</strong><span>Borradores</span></div>
+        </div>
         <div className="project-toolbar">
-          <div className="search-box"><StudioIcon name="search" /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Buscar proyecto" aria-label="Buscar proyectos" /></div>
+          <div className="project-toolbar-heading"><div><h2>Todos tus proyectos</h2><p>{filteredProjects.length} {filteredProjects.length === 1 ? 'resultado' : 'resultados'}</p></div></div>
+          <div className="search-box"><StudioIcon name="search" /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Buscar por nombre, modelo o prompt" aria-label="Buscar proyectos" /></div>
           <div className="status-filters" aria-label="Filtrar proyectos">
-            {filters.map((item) => <button key={item} className={status === item ? 'selected' : ''} onClick={() => setStatus(item)}>{item}</button>)}
+            {filters.map((item) => <button key={item} className={status === item ? 'selected' : ''} onClick={() => setStatus(item)}>{item}<span>{statusCounts[item]}</span></button>)}
           </div>
         </div>
         {filteredProjects.length ? (
@@ -518,6 +532,13 @@ function PreferencesView({ user }) {
 }
 
 export function StudioWorkspace({ user: propUser, setUser: propSetUser, onLogout: propLogout }) {
+  const { pathname } = useLocation()
+  const initialViews = {
+    '/proyectos': 'Mis proyectos',
+    '/modelos': 'Modelos IA',
+    '/creditos': 'Créditos',
+    '/preferencias': 'Preferencias',
+  }
   const [internalUser, setInternalUser] = useState({
     id: 1,
     nombre: 'Andrés Rojas',
@@ -529,7 +550,7 @@ export function StudioWorkspace({ user: propUser, setUser: propSetUser, onLogout
   const setUser = propSetUser || setInternalUser
   const onLogout = propLogout || (() => window.location.href = '/login')
 
-  const [active, setActive] = useState('Resumen')
+  const [active, setActive] = useState(() => initialViews[pathname] || 'Resumen')
   const [projects, setProjects] = useState(initialProjects)
   const [transactions, setTransactions] = useState(() => getInitialTransactions(user?.creditosDisponibles ?? 0))
   const [isCreatorOpen, setCreatorOpen] = useState(false)
