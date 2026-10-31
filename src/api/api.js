@@ -1,6 +1,7 @@
 import { authService } from './authService';
 import { proyectoService } from './proyectoService';
 import { usuarioService } from './usuarioService';
+import { apiClient } from './client';
 
 export { authService, proyectoService, usuarioService };
 
@@ -18,6 +19,10 @@ export const aivaApi = {
   // Regla 2: Recarga con bonificación
   recargarCreditos: usuarioService.recargarCreditos,
   obtenerPerfil: usuarioService.obtenerPerfil,
+  listarMovimientos: usuarioService.listarMovimientos,
+
+  // Catálogo de modelos habilitados en el backend
+  listarModelos: () => apiClient('/aiva/modelos'),
 };
 
 export default aivaApi;

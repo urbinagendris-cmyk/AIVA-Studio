@@ -46,24 +46,14 @@ export const Login = () => {
       // Redirección al panel principal tras login exitoso
       navigate("/");
     } catch (error) {
-      // En entorno local o si el backend aún no está levantado, permitimos acceso demo
-      console.warn("Fallo de conexión o credenciales API, activando fallback demo:", error.message);
-
-      // Simulación de sesión local para pruebas universitarias
-      localStorage.setItem("aiva_token", "demo_jwt_token_cesde_2026");
-
       Swal.fire({
-        icon: "info",
-        title: "Acceso en Modo Demo",
-        text: "Iniciando sesión con credenciales de prueba locales.",
+        icon: "error",
+        title: "No se pudo iniciar sesión",
+        text: error.message,
         background: "#1e293b",
         color: "#f8fafc",
-        confirmButtonColor: "#6366f1",
-        timer: 1600,
-        showConfirmButton: false,
+        confirmButtonColor: "#ef4444",
       });
-
-      navigate("/");
     } finally {
       setCargando(false);
     }

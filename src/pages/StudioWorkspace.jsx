@@ -1,83 +1,9 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useLocation } from 'react-router-dom'
-import { mockModelosIA } from '../data/mocks'
 import { aivaApi } from '../api/api'
 import { calculateCreditRecharge, calculateRenderCost, formatCredits } from '../helpers/businessRules'
+import { toWorkspaceMovement, toWorkspaceProject } from '../helpers/aivaMappers'
 import '../components/studio-workspace.css'
-
-const initialProjects = [
-  {
-    id: 1,
-    title: 'Lanzamiento Aurora',
-    type: 'Video promocional',
-    date: 'Hoy, 10:42',
-    status: 'Listo',
-    color: 'coral',
-    duration: 42,
-    modelId: 'lumina-v2',
-    format: '16:9',
-    costoCreditos: 40,
-    prompt: 'Una campaña luminosa para el lanzamiento de una nueva marca.',
-  },
-  {
-    id: 2,
-    title: 'Historias que inspiran',
-    type: 'Video para redes',
-    date: 'Ayer, 16:18',
-    status: 'Generando',
-    color: 'blue',
-    duration: 28,
-    modelId: 'sora-api',
-    format: '9:16',
-    costoCreditos: 30,
-    prompt: 'Una historia breve, cercana y optimista para redes sociales.',
-  },
-  {
-    id: 3,
-    title: 'Curso de fotografía',
-    type: 'Contenido educativo',
-    date: '12 oct, 09:06',
-    status: 'Borrador',
-    color: 'gold',
-    duration: 74,
-    modelId: 'runway-gen3',
-    format: '16:9',
-    costoCreditos: 50,
-    prompt: 'Una introducción visual a los fundamentos de fotografía.',
-  },
-]
-
-const modelDetails = {
-  'lumina-v2': {
-    category: 'Equilibrado',
-    description: 'Una opción versátil para anuncios, historias y contenido diario.',
-    color: 'coral',
-  },
-  'sora-api': {
-    category: 'Alta fidelidad',
-    description: 'Escenas detalladas y narrativas con acabado cinematográfico.',
-    color: 'blue',
-  },
-  'runway-gen3': {
-    category: 'Creativo',
-    description: 'Ideal para explorar estilos, movimiento y conceptos visuales.',
-    color: 'gold',
-  },
-  'svd-xl': {
-    category: 'Ligero',
-    description: 'Prueba ideas y conceptos con un consumo de créditos menor.',
-    color: 'green',
-  },
-}
-
-function getInitialTransactions(balance) {
-  return [
-    { id: 1, label: 'Recarga inicial', date: '21 oct, 09:12', amount: balance + 120 },
-    { id: 2, label: 'Lanzamiento Aurora', date: '21 oct, 10:42', amount: -40 },
-    { id: 3, label: 'Historias que inspiran', date: '20 oct, 16:18', amount: -30 },
-    { id: 4, label: 'Curso de fotografía', date: '18 oct, 09:06', amount: -50 },
-  ]
-}
 
 const navItems = [
   { label: 'Resumen', icon: 'grid' },
@@ -166,8 +92,8 @@ function PageHeading({ eyebrow, title, description, action }) {
   )
 }
 
-function ProjectCard({ project, onOpen }) {
-  const model = mockModelosIA.find((item) => item.id === project.modelId)
+function ProjectCard({ project, models, onOpen }) {
+  const model = models.find((item) => item.id === project.modelId)
   const seconds = Number(project.duration) || 0
   const duration = `${String(Math.floor(seconds / 60)).padStart(2, '0')}:${String(seconds % 60).padStart(2, '0')}`
   const statusClass = (project.status || '').toLowerCase().replace(/\s+/g, '-')
@@ -198,20 +124,20 @@ function ProjectCard({ project, onOpen }) {
   )
 }
 
-function VideoCreatorModal({ onClose, onCreate, creditosDisponibles, initialModelId }) {
+function VideoCreatorModal({ models, onClose, onCreate, creditosDisponibles, initialModelId }) {
   const [step, setStep] = useState(1)
   const [brief, setBrief] = useState({
     title: '',
     prompt: '',
-    modelId: initialModelId || mockModelosIA[0].id,
+    modelId: initialModelId || models[0]?.id || '',
     duration: 15,
     format: '9:16',
     style: 'Cinematográfico',
   })
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
-  const model = mockModelosIA.find((item) => item.id === brief.modelId) || mockModelosIA[0]
-  const cost = calculateRenderCost(brief.duration, model.costoPorSegundo)
+  const model = models.find((item) => item.id === brief.modelId)
+  const cost = model ? calculateRenderCost(brief.duration, model.costoPorSegundo) : 0
 
   function updateBrief(key, value) {
     setBrief((current) => ({ ...current, [key]: value }))
@@ -219,6 +145,10 @@ function VideoCreatorModal({ onClose, onCreate, creditosDisponibles, initialMode
   }
 
   async function continueFlow() {
+    if (!model) {
+      setError('No hay modelos de video disponibles en este momento.')
+      return
+    }
     if (step === 1 && !brief.title.trim()) {
       setError('Escribe un nombre para tu proyecto.')
       return
@@ -277,7 +207,7 @@ function VideoCreatorModal({ onClose, onCreate, creditosDisponibles, initialMode
             <p className="muted">El costo se calcula según el modelo elegido y la duración del video.</p>
             <label htmlFor="model-select">Modelo de video IA</label>
             <select id="model-select" value={brief.modelId} onChange={(event) => updateBrief('modelId', event.target.value)}>
-              {mockModelosIA.map((item) => <option key={item.id} value={item.id}>{item.nombre} · {item.costoPorSegundo} cr/seg</option>)}
+              {models.map((item) => <option key={item.id} value={item.id}>{item.nombre} · {item.costoPorSegundo} cr/seg</option>)}
             </select>
             <div className="creator-options">
               <div>
@@ -322,14 +252,14 @@ function VideoCreatorModal({ onClose, onCreate, creditosDisponibles, initialMode
               <div><small>PROMPT</small><p>{brief.prompt}</p></div>
               <div className="cost-estimate"><span>Se descontarán de tu saldo</span><strong>⚡ {formatCredits(cost)} créditos</strong></div>
             </div>
-            <p className="demo-callout">La interfaz guardará esta solicitud como una demostración. La generación real se conectará desde el backend.</p>
+            <p className="demo-callout">La solicitud se guardará en tu cuenta y quedará en cola. Aún no hay un proveedor de generación de video conectado.</p>
           </>
         )}
 
         {error && <p className="creator-error" role="alert">{error}</p>}
         <div className="creator-actions">
           {step > 1 && <button type="button" className="secondary-button" onClick={() => { setStep((current) => current - 1); setError('') }}>Volver</button>}
-          <button type="button" className="primary-button modal-submit" onClick={continueFlow} disabled={submitting || (step === 2 && cost > creditosDisponibles)}>
+          <button type="button" className="primary-button modal-submit" onClick={continueFlow} disabled={submitting || !model || (step === 2 && cost > creditosDisponibles)}>
             {submitting ? 'Enviando...' : step === 3 ? 'Enviar a la cola' : 'Continuar'} <StudioIcon name="arrow" />
           </button>
         </div>
@@ -338,8 +268,8 @@ function VideoCreatorModal({ onClose, onCreate, creditosDisponibles, initialMode
   )
 }
 
-function ProjectDetailsModal({ project, onClose }) {
-  const model = mockModelosIA.find((item) => item.id === project.modelId)
+function ProjectDetailsModal({ project, models, onClose }) {
+  const model = models.find((item) => item.id === project.modelId)
   const statusClass = (project.status || '').toLowerCase().replace(/\s+/g, '-')
 
   return (
@@ -362,7 +292,7 @@ function ProjectDetailsModal({ project, onClose }) {
   )
 }
 
-function SummaryView({ user, projects, onCreate, onNavigate, onOpenProject }) {
+function SummaryView({ user, projects, models, onCreate, onNavigate, onOpenProject }) {
   const completed = projects.filter((project) => project.status === 'Listo').length
   const processing = projects.filter((project) => project.status === 'Generando' || project.status === 'En cola').length
   const recent = projects.slice(0, 3)
@@ -396,7 +326,7 @@ function SummaryView({ user, projects, onCreate, onNavigate, onOpenProject }) {
           <button className="text-link" onClick={() => onNavigate('Mis proyectos')}>Ver todos <StudioIcon name="arrow" /></button>
         </div>
         <div className="projects-grid">
-          {recent.map((project) => <ProjectCard key={project.id} project={project} onOpen={onOpenProject} />)}
+          {recent.map((project) => <ProjectCard key={project.id} project={project} models={models} onOpen={onOpenProject} />)}
           <button className="empty-project" onClick={onCreate}><span><StudioIcon name="plus" /></span><b>Crear un proyecto</b><small>Empieza con una idea</small></button>
         </div>
       </section>
@@ -409,7 +339,7 @@ function SummaryView({ user, projects, onCreate, onNavigate, onOpenProject }) {
   )
 }
 
-function ProjectsView({ projects, onCreate, onOpenProject }) {
+function ProjectsView({ projects, models, onCreate, onOpenProject }) {
   const [query, setQuery] = useState('')
   const [status, setStatus] = useState('Todos')
   const filters = ['Todos', 'En cola', 'Generando', 'Listo', 'Borrador', 'Fallido']
@@ -443,7 +373,7 @@ function ProjectsView({ projects, onCreate, onOpenProject }) {
         </div>
         {filteredProjects.length ? (
           <div className="projects-grid">
-            {filteredProjects.map((project) => <ProjectCard key={project.id} project={project} onOpen={onOpenProject} />)}
+            {filteredProjects.map((project) => <ProjectCard key={project.id} project={project} models={models} onOpen={onOpenProject} />)}
           </div>
         ) : (
           <div className="empty-state"><span><StudioIcon name="folder" /></span><h2>No encontramos proyectos</h2><p>Prueba con otro nombre o crea un video nuevo.</p><button className="primary-button create-button" onClick={onCreate}><StudioIcon name="plus" />Crear video</button></div>
@@ -453,24 +383,23 @@ function ProjectsView({ projects, onCreate, onOpenProject }) {
   )
 }
 
-function ModelsView({ onChooseModel }) {
+function ModelsView({ models, onChooseModel }) {
   return (
     <>
       <PageHeading eyebrow="CATÁLOGO CREATIVO" title="Modelos IA" description="Compara los modelos disponibles y elige el que mejor encaje con tu idea." />
       <div className="model-grid">
-        {mockModelosIA.map((model) => {
-          const details = modelDetails[model.id] || { category: 'Video IA', description: 'Modelo de generación de video disponible en AIVA Studio.', color: 'coral' }
+        {models.map((model) => {
           return (
-            <article className={`model-card ${details.color}`} key={model.id}>
-              <div className="model-card-top"><span className="model-symbol"><StudioIcon name="spark" /></span><span className="model-tag">{details.category}</span></div>
-              <h2>{model.nombre}</h2><p>{details.description}</p>
+            <article className={`model-card ${model.color || 'coral'}`} key={model.id}>
+              <div className="model-card-top"><span className="model-symbol"><StudioIcon name="spark" /></span><span className="model-tag">{model.categoria || 'Video IA'}</span></div>
+              <h2>{model.nombre}</h2><p>{model.descripcion}</p>
               <div className="model-cost"><strong>{model.costoPorSegundo} <small>créditos</small></strong><span>por segundo</span></div>
               <button className="secondary-button" onClick={() => onChooseModel(model.id)}>Crear con este modelo <StudioIcon name="arrow" /></button>
             </article>
           )
         })}
       </div>
-      <p className="subtle-note">Catálogo demostrativo: disponibilidad, precios y capacidades se configurarán desde el backend.</p>
+      <p className="subtle-note">Disponibilidad, precios y descripciones se consultan desde el backend.</p>
     </>
   )
 }
@@ -539,75 +468,112 @@ export function StudioWorkspace({ user: propUser, setUser: propSetUser, onLogout
     '/creditos': 'Créditos',
     '/preferencias': 'Preferencias',
   }
-  const [internalUser, setInternalUser] = useState({
-    id: 1,
-    nombre: 'Andrés Rojas',
-    email: 'creador@aiva.studio',
-    creditosDisponibles: 120,
-  })
+  const [internalUser, setInternalUser] = useState(null)
 
   const user = propUser || internalUser
   const setUser = propSetUser || setInternalUser
-  const onLogout = propLogout || (() => window.location.href = '/login')
 
   const [active, setActive] = useState(() => initialViews[pathname] || 'Resumen')
-  const [projects, setProjects] = useState(initialProjects)
-  const [transactions, setTransactions] = useState(() => getInitialTransactions(user?.creditosDisponibles ?? 0))
+  const [projects, setProjects] = useState([])
+  const [transactions, setTransactions] = useState([])
+  const [models, setModels] = useState([])
   const [isCreatorOpen, setCreatorOpen] = useState(false)
-  const [selectedModelId, setSelectedModelId] = useState(mockModelosIA[0].id)
+  const [selectedModelId, setSelectedModelId] = useState('')
   const [selectedProject, setSelectedProject] = useState(null)
   const [notice, setNotice] = useState('')
   const [noticeType, setNoticeType] = useState('info')
 
+  useEffect(() => {
+    const userId = localStorage.getItem('aiva_user_id')
+    if (!localStorage.getItem('aiva_token') || !userId) {
+      window.location.href = '/login'
+      return
+    }
+
+    let activeRequest = true
+    Promise.all([
+      aivaApi.obtenerPerfil(userId),
+      aivaApi.listarProyectos(userId),
+      aivaApi.listarMovimientos(userId),
+      aivaApi.listarModelos(),
+    ])
+      .then(([profile, savedProjects, movements, availableModels]) => {
+        if (!activeRequest) return
+        setUser(profile)
+        setProjects(savedProjects.map(toWorkspaceProject))
+        setTransactions(movements.map(toWorkspaceMovement))
+        setModels(availableModels)
+        setSelectedModelId(availableModels[0]?.id || '')
+      })
+      .catch((error) => {
+        if (activeRequest) {
+          setNotice(error.message)
+          setNoticeType('warning')
+        }
+      })
+
+    return () => {
+      activeRequest = false
+    }
+  }, [setUser])
+
+  async function logout() {
+    try {
+      await aivaApi.logout()
+    } catch (error) {
+      setNotice(error.message)
+      setNoticeType('warning')
+    }
+    window.location.href = '/login'
+  }
+
+  const onLogout = propLogout || logout
   const activeTitle = useMemo(() => active === 'Configuración' ? 'Preferencias' : active, [active])
 
   function navigate(label) {
     setActive(label)
     if (label === 'Crear video') {
-      setSelectedModelId(mockModelosIA[0].id)
+      setSelectedModelId(models[0]?.id || '')
       setCreatorOpen(true)
     }
   }
 
   async function createProject(brief) {
-    if (brief.cost > user.creditosDisponibles) {
+    if (!user || brief.cost > user.creditosDisponibles) {
       throw new Error('No tienes créditos suficientes para enviar esta solicitud.')
     }
 
     try {
-      await aivaApi.crearProyecto({
+      const savedProject = await aivaApi.crearProyecto({
         usuarioId: user.id,
-        nombre: brief.title,
+        nombre: brief.title.trim(),
+        prompt: brief.prompt.trim(),
+        modelId: brief.modelId,
         modeloIa: brief.modelName,
         costoCreditos: brief.cost,
         duracionSeg: brief.duration,
+        formato: brief.format,
+        estilo: brief.style,
       })
-      setNotice('Solicitud registrada. El render se mostrará como pendiente hasta conectar el proveedor de video.')
+      const project = toWorkspaceProject(savedProject)
+      setProjects((current) => [project, ...current])
+      setTransactions((current) => [{
+        id: savedProject.id,
+        label: `Generación · ${savedProject.nombre}`,
+        date: 'Ahora',
+        amount: -savedProject.costoCreditos,
+      }, ...current])
+      setUser((current) => ({
+        ...current,
+        creditosDisponibles: savedProject.creditosDisponibles,
+      }))
+      setNotice('Solicitud guardada. La generación real requiere conectar un proveedor de video.')
       setNoticeType('success')
     } catch (error) {
-      setNotice(`Modo demostración: no se pudo guardar en el servidor (${error.message}). La solicitud solo se conservará en esta sesión.`)
+      setNotice(`No se pudo guardar la solicitud: ${error.message}`)
       setNoticeType('warning')
+      throw error
     }
-
-    const now = new Date()
-    const project = {
-      id: now.getTime(),
-      title: brief.title.trim(),
-      prompt: brief.prompt.trim(),
-      style: brief.style,
-      modelId: brief.modelId,
-      modelName: brief.modelName,
-      format: brief.format,
-      duration: brief.duration,
-      costoCreditos: brief.cost,
-      type: brief.style,
-      date: 'Ahora',
-      status: 'En cola',
-      color: modelDetails[brief.modelId]?.color || 'coral',
-    }
-    setProjects((current) => [project, ...current])
-    setTransactions((current) => [{ id: project.id, label: `Generación · ${project.title}`, date: 'Ahora', amount: -brief.cost }, ...current])
-    setUser((current) => ({ ...current, creditosDisponibles: current.creditosDisponibles - brief.cost }))
     setCreatorOpen(false)
     setActive('Mis proyectos')
   }
@@ -619,27 +585,27 @@ export function StudioWorkspace({ user: propUser, setUser: propSetUser, onLogout
       return
     }
 
-    const rechargeCalc = calculateCreditRecharge(amount)
-
     try {
-      await aivaApi.recargarCreditos(user.id, amount)
-      setNotice('La recarga se registró en la API. El pago real requiere integración con una pasarela.')
+      const result = await aivaApi.recargarCreditos(user.id, amount)
+      setUser((current) => ({
+        ...current,
+        creditosDisponibles: result.creditosDisponibles,
+      }))
+      setTransactions((current) => [{
+        id: Date.now(),
+        label: result.bonificacion > 0
+          ? `Recarga de prueba (+${formatCredits(result.bonificacion)} bono)`
+          : 'Recarga de prueba',
+        date: 'Ahora',
+        amount: result.totalRecargado,
+      }, ...current])
+      setNotice('Recarga de prueba guardada. El pago real requiere una pasarela.')
       setNoticeType('success')
     } catch (error) {
-      setNotice(`Modo demostración: la API de créditos no está disponible (${error.message}). El saldo solo se actualizará en esta sesión.`)
+      setNotice(`No se pudo guardar la recarga: ${error.message}`)
       setNoticeType('warning')
+      return
     }
-
-    setUser((current) => ({ ...current, creditosDisponibles: current.creditosDisponibles + rechargeCalc.total }))
-    setTransactions((current) => [
-      {
-        id: Date.now(),
-        label: rechargeCalc.hasBonus ? `Recarga de prueba (+${formatCredits(rechargeCalc.bonus)} bono)` : 'Recarga de prueba',
-        date: 'Ahora',
-        amount: rechargeCalc.total,
-      },
-      ...current,
-    ])
   }
 
   function chooseModel(modelId) {
@@ -649,9 +615,22 @@ export function StudioWorkspace({ user: propUser, setUser: propSetUser, onLogout
   }
 
   function openCreator() {
-    setSelectedModelId(mockModelosIA[0].id)
+    if (!models.length) {
+      setNotice('No hay modelos de video disponibles en este momento.')
+      setNoticeType('warning')
+      return
+    }
+    setSelectedModelId(models[0].id)
     setActive('Crear video')
     setCreatorOpen(true)
+  }
+
+  if (!user) {
+    return (
+      <main className="min-h-screen bg-slate-950 px-6 py-12 text-center text-slate-200">
+        {notice || 'Cargando tu espacio AIVA...'}
+      </main>
+    )
   }
 
   return (
@@ -662,7 +641,7 @@ export function StudioWorkspace({ user: propUser, setUser: propSetUser, onLogout
           <div className="mobile-header-brand"><BrandMark /><strong>AIVA<span>.</span>studio</strong></div>
           <div className="breadcrumbs"><span>Estudio</span><b>/</b><strong>{activeTitle}</strong></div>
           <div className="header-actions">
-            <span className="studio-mode">FRONTEND DEMO</span>
+            <span className="studio-mode">AIVA STUDIO</span>
             <div className="header-user"><span className="avatar avatar-yellow">{(user?.nombre || 'AR').slice(0, 2).toUpperCase()}</span><span><b>{user?.nombre || 'Andrés Rojas'}</b><small>⚡ {formatCredits(user?.creditosDisponibles ?? 0)} cr</small></span></div>
           </div>
         </header>
@@ -675,9 +654,9 @@ export function StudioWorkspace({ user: propUser, setUser: propSetUser, onLogout
         </nav>
         <div className="dashboard-content">
           {notice && <div className={`workspace-notice ${noticeType}`} role="status"><span>{notice}</span><button onClick={() => setNotice('')} aria-label="Cerrar aviso">×</button></div>}
-          {active === 'Resumen' && <SummaryView user={user} projects={projects} onCreate={openCreator} onNavigate={navigate} onOpenProject={setSelectedProject} />}
-          {active === 'Mis proyectos' && <ProjectsView projects={projects} onCreate={openCreator} onOpenProject={setSelectedProject} />}
-          {active === 'Modelos IA' && <ModelsView onChooseModel={chooseModel} />}
+          {active === 'Resumen' && <SummaryView user={user} projects={projects} models={models} onCreate={openCreator} onNavigate={navigate} onOpenProject={setSelectedProject} />}
+          {active === 'Mis proyectos' && <ProjectsView projects={projects} models={models} onCreate={openCreator} onOpenProject={setSelectedProject} />}
+          {active === 'Modelos IA' && <ModelsView models={models} onChooseModel={chooseModel} />}
           {active === 'Créditos' && <CreditsView user={user} onRecharge={recharge} transactions={transactions} />}
           {(active === 'Configuración' || active === 'Preferencias') && <PreferencesView user={user} />}
           {active === 'Crear video' && (
@@ -688,13 +667,13 @@ export function StudioWorkspace({ user: propUser, setUser: propSetUser, onLogout
                 <article><span>02</span><h2>Elige el modelo</h2><p>Compara modelos, formato y duración con el costo estimado.</p></article>
                 <article><span>03</span><h2>Envía a la cola</h2><p>Revisa la solicitud y sigue su estado desde Mis proyectos.</p></article>
               </div>
-              <section className="workspace-panel quick-models"><div className="section-heading"><div><h2>Modelos disponibles</h2><p>Comienza con uno de los modelos de AIVA Studio.</p></div><button className="text-link" onClick={() => setActive('Modelos IA')}>Ver catálogo <StudioIcon name="arrow" /></button></div><div className="quick-model-list">{mockModelosIA.slice(0, 3).map((model) => <button key={model.id} onClick={() => chooseModel(model.id)}><span><b>{model.nombre}</b><small>{model.costoPorSegundo} créditos por segundo</small></span><StudioIcon name="arrow" /></button>)}</div></section>
+              <section className="workspace-panel quick-models"><div className="section-heading"><div><h2>Modelos disponibles</h2><p>Comienza con uno de los modelos de AIVA Studio.</p></div><button className="text-link" onClick={() => setActive('Modelos IA')}>Ver catálogo <StudioIcon name="arrow" /></button></div><div className="quick-model-list">{models.slice(0, 3).map((model) => <button key={model.id} onClick={() => chooseModel(model.id)}><span><b>{model.nombre}</b><small>{model.costoPorSegundo} créditos por segundo</small></span><StudioIcon name="arrow" /></button>)}</div></section>
             </section>
           )}
         </div>
       </main>
-      {isCreatorOpen && <VideoCreatorModal onClose={() => setCreatorOpen(false)} onCreate={createProject} creditosDisponibles={user?.creditosDisponibles ?? 0} initialModelId={selectedModelId} />}
-      {selectedProject && <ProjectDetailsModal project={selectedProject} onClose={() => setSelectedProject(null)} />}
+      {isCreatorOpen && <VideoCreatorModal models={models} onClose={() => setCreatorOpen(false)} onCreate={createProject} creditosDisponibles={user?.creditosDisponibles ?? 0} initialModelId={selectedModelId} />}
+      {selectedProject && <ProjectDetailsModal project={selectedProject} models={models} onClose={() => setSelectedProject(null)} />}
     </div>
   )
 }

@@ -1,5 +1,4 @@
 import { Link } from "react-router-dom";
-import { mockUsuario } from "../data/mocks";
 
 export function Header() {
   return (
@@ -34,18 +33,9 @@ export function Header() {
 
           {/* Información del Usuario y Créditos */}
           <div className="hidden md:flex items-center space-x-4">
-            <div className="flex items-center gap-2 bg-slate-800 border border-slate-700 px-3 py-1.5 rounded-full text-xs font-medium">
-              <span className="text-amber-400">⚡</span>
-              <span className="text-slate-300">Créditos:</span>
-              <span className="text-white font-bold">{mockUsuario.creditosDisponibles}</span>
-            </div>
-
-            <div className="flex items-center gap-2 text-xs text-slate-400 border-l border-slate-700 pl-4">
-              <div className="w-7 h-7 rounded-full bg-indigo-700 flex items-center justify-center text-white font-bold text-xs uppercase">
-                {mockUsuario.email.charAt(0)}
-              </div>
-              <span className="truncate max-w-[140px]">{mockUsuario.email}</span>
-            </div>
+            <Link to="/workspace" className="text-sm font-semibold text-indigo-300 hover:text-indigo-200">
+              Abrir mi estudio
+            </Link>
           </div>
 
           {/* Botón Menú Móvil */}

@@ -5,14 +5,28 @@ export const proyectoService = {
    * REGLA 1: Crear Proyecto de Renderizado y Descontar Créditos
    * POST /api/aiva/proyectos/crear
    */
-  crearProyecto: async ({ usuarioId, nombre, modeloIa, costoCreditos, duracionSeg }) => {
+  crearProyecto: async ({
+    usuarioId,
+    nombre,
+    prompt,
+    modelId,
+    modeloIa,
+    costoCreditos,
+    duracionSeg,
+    formato,
+    estilo,
+  }) => {
     return await apiClient('/aiva/proyectos/crear', {
       body: {
         usuarioId,
         nombre,
+        prompt,
+        modelId,
         modeloIa,
         costoCreditos,
         duracionSeg,
+        formato,
+        estilo,
       },
     });
   },

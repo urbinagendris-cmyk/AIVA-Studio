@@ -2,7 +2,7 @@ export const Card = ({ proyecto }) => {
   return (
     <div className="bg-slate-800 border border-slate-700 rounded-xl overflow-hidden shadow-sm hover:border-slate-600 transition-all flex flex-col">
       <img
-        src={proyecto.urlPreview}
+        src={proyecto.urlPreview || "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=600&q=80"}
         alt={proyecto.nombre}
         className="w-full h-36 object-cover opacity-80 hover:opacity-100 transition-opacity"
       />

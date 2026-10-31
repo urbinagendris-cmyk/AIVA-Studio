@@ -38,10 +38,10 @@ export async function apiClient(endpoint, { body, ...customConfig } = {}) {
     return null;
   }
 
-  const data = await response.json().catch(() => ({}));
+  const data = await response.json();
 
   if (!response.ok) {
-    throw new Error(data.error || data.message || `Error en la petición: HTTP ${response.status}`);
+    throw new Error(data.message || data.error || `Error en la petición: HTTP ${response.status}`);
   }
 
   return data;

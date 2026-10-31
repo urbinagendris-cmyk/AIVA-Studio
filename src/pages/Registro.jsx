@@ -57,7 +57,7 @@ export const Registro = () => {
 
     try {
       // Envío a la API (POST /api/auth/registro)
-      await aivaApi.registro(email.trim(), password);
+      await aivaApi.registro(nombre.trim(), email.trim(), password);
 
       Swal.fire({
         icon: "success",
@@ -72,20 +72,14 @@ export const Registro = () => {
 
       navigate("/login");
     } catch (error) {
-      console.warn("Fallo en API de registro, ejecutando fallback demo:", error.message);
-
       Swal.fire({
-        icon: "info",
-        title: "Registro en Modo Demo",
-        text: "Usuario simulado registrado correctamente. Puedes iniciar sesión.",
+        icon: "error",
+        title: "No se pudo crear la cuenta",
+        text: error.message,
         background: "#1e293b",
         color: "#f8fafc",
-        confirmButtonColor: "#6366f1",
-        timer: 1800,
-        showConfirmButton: false,
+        confirmButtonColor: "#ef4444",
       });
-
-      navigate("/login");
     } finally {
       setCargando(false);
     }

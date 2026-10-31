@@ -1,15 +1,15 @@
 # AIVA Studio
 
-Frontend de un estudio para preparar y administrar solicitudes de generación de videos con IA. La interfaz está construida con React y Vite; el backend y la conexión con proveedores de generación se desarrollan por separado.
+Frontend de un estudio para preparar y administrar solicitudes de generación de videos con IA. La interfaz está construida con React y Vite y consume la API Spring Boot de AIVA Studio.
 
 ## Experiencia incluida
 
-- Inicio de sesión de demostración y espacio de trabajo creativo.
+- Registro e inicio de sesión conectados con la API.
 - Resumen con saldo, actividad reciente y estados de generación.
 - Flujo guiado de tres pasos: brief y prompt, modelo y formato, revisión y envío.
-- Catálogo demostrativo de modelos con costo estimado por segundo.
+- Catálogo de modelos y costos consultados desde la API.
 - Biblioteca de proyectos con búsqueda, filtros por estado y vista de detalles.
-- Pantalla de créditos con historial y simulación de recargas.
+- Pantalla de créditos con historial persistido y registro de recargas de prueba.
 - Diseño adaptable a pantallas pequeñas.
 
 El flujo retoma patrones de navegación, paneles de gestión, filtros y asistente de reserva del [proyecto de referencia](https://github.com/jfinforecursos/backend2-proyecto-integrador-v1), traducidos al dominio de creación audiovisual. No se conservan entidades ni contenido médico.
@@ -33,10 +33,10 @@ npm run build
 npm run preview
 ```
 
-## Modo frontend
+## Conexión con el backend
 
-El catálogo, los proyectos de ejemplo, la cola de generación y las recargas son datos de demostración en memoria. Se reinician al recargar la página. La interfaz puede llamar a los endpoints existentes de AIVA para crear proyectos y recargar créditos; si la API no está disponible, informa que el cambio quedó solo en la sesión actual.
+El frontend consume el backend Spring Boot para registro e inicio de sesión, consulta del catálogo y perfil, creación/listado de proyectos y movimientos de créditos. Configura `VITE_API_URL` para apuntar a la API; por defecto usa `http://localhost:8080/api`. El backend debe permitir el origen del frontend mediante `FRONTEND_URL` (por defecto `http://localhost:5173`).
 
-Configura `VITE_API_URL` para apuntar el frontend a la API. Por defecto usa `http://localhost:8080/api`.
+Levanta primero el backend y después inicia Vite con `npm run dev`. Los errores de red o de validación se muestran al usuario; no se confirma una operación que el servidor no haya guardado.
 
-La solicitud de generación incluye actualmente los campos del contrato de proyecto disponible (`usuarioId`, `nombre`, `modeloIa`, `costoCreditos`, `duracionSeg`). El prompt, estilo y formato se administran en la interfaz; deberán añadirse al contrato del backend antes de persistirlos o enviarlos a un proveedor real. No se conecta ni se simula una generación de video real.
+El backend guarda solicitudes en cola y actualiza el saldo de forma transaccional. Las recargas son de prueba y no procesan pagos; tampoco se genera un video hasta conectar un proveedor externo.

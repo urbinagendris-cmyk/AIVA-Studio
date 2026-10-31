@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import Swal from "sweetalert2";
-import { mockUsuario, mockModelosIA, mockProyectos } from "../data/mocks";
 import Card from "../components/Cards";
 import { aivaApi } from "../api/api";
 import {
@@ -10,25 +10,59 @@ import {
   formatCredits,
 } from "../helpers/businessRules";
 
-const createProjectId = () => Date.now();
-
 export const Home = () => {
-  // Estado local para persistencia simulada
-  const [usuario, setUsuario] = useState(mockUsuario);
-  const [proyectos, setProyectos] = useState(mockProyectos);
+  const navigate = useNavigate();
+  const [usuario, setUsuario] = useState(null);
+  const [proyectos, setProyectos] = useState([]);
+  const [modelos, setModelos] = useState([]);
+  const [cargandoSesion, setCargandoSesion] = useState(true);
+  const [errorApi, setErrorApi] = useState("");
 
   // Estados del formulario para nuevo proyecto
   const [nombreProyecto, setNombreProyecto] = useState("");
-  const [modeloSeleccionado, setModeloSeleccionado] = useState(mockModelosIA[0].id);
+  const [modeloSeleccionado, setModeloSeleccionado] = useState("");
   const [duracion, setDuracion] = useState(15);
   const [cargando, setCargando] = useState(false);
 
   // Estado para formulario de recarga
   const [montoRecarga, setMontoRecarga] = useState(500);
 
-  // Modelo actual y cálculo centralizado vía helper
-  const modeloActual = mockModelosIA.find((m) => m.id === modeloSeleccionado) || mockModelosIA[0];
-  const costoCalculado = calculateRenderCost(duracion, modeloActual.costoPorSegundo);
+  useEffect(() => {
+    const userId = localStorage.getItem("aiva_user_id");
+    if (!localStorage.getItem("aiva_token") || !userId) {
+      navigate("/login", { replace: true });
+      return;
+    }
+
+    let active = true;
+    Promise.all([
+      aivaApi.obtenerPerfil(userId),
+      aivaApi.listarProyectos(userId),
+      aivaApi.listarModelos(),
+    ])
+      .then(([profile, projects, availableModels]) => {
+        if (!active) return;
+        setUsuario(profile);
+        setProyectos(projects);
+        setModelos(availableModels);
+        setModeloSeleccionado(availableModels[0]?.id || "");
+      })
+      .catch((error) => {
+        if (active) setErrorApi(error.message);
+      })
+      .finally(() => {
+        if (active) setCargandoSesion(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [navigate]);
+
+  const modeloActual = modelos.find((model) => model.id === modeloSeleccionado);
+  const costoCalculado = modeloActual
+    ? calculateRenderCost(duracion, modeloActual.costoPorSegundo)
+    : 0;
   const recargaCalculada = calculateCreditRecharge(montoRecarga);
 
   // Regla 1: Crear Proyecto de Renderizado y Descontar Créditos
@@ -60,54 +94,47 @@ export const Home = () => {
     }
 
     setCargando(true);
-
     try {
-      // Intento de guardado en la API Spring Boot
-      await aivaApi.crearProyecto({
+      const newProject = await aivaApi.crearProyecto({
         usuarioId: usuario.id,
         nombre: nombreProyecto.trim(),
+        prompt: nombreProyecto.trim(),
+        modelId: modeloActual.id,
         modeloIa: modeloActual.nombre,
         costoCreditos: costoCalculado,
         duracionSeg: Number(duracion),
+        formato: "16:9",
+        estilo: "Cinematográfico",
       });
-    } catch {
-      // Modo fallback demostrativo para desarrollo local
-      console.warn("API no disponible, operando en modo local.");
+      setUsuario((current) => ({
+        ...current,
+        creditosDisponibles: newProject.creditosDisponibles,
+      }));
+      setProyectos((current) => [newProject, ...current]);
+      setNombreProyecto("");
+
+      Swal.fire({
+        icon: "success",
+        title: "¡Proyecto enviado!",
+        text: `El video "${newProject.nombre}" entró a cola de renderizado.`,
+        background: "#1e293b",
+        color: "#f8fafc",
+        confirmButtonColor: "#6366f1",
+        timer: 2000,
+        showConfirmButton: false,
+      });
+    } catch (error) {
+      Swal.fire({
+        icon: "error",
+        title: "No se pudo crear el proyecto",
+        text: error.message,
+        background: "#1e293b",
+        color: "#f8fafc",
+        confirmButtonColor: "#ef4444",
+      });
     } finally {
       setCargando(false);
     }
-
-    // Descontar saldo y registrar en estado
-    setUsuario((prev) => ({
-      ...prev,
-      creditosDisponibles: prev.creditosDisponibles - costoCalculado,
-    }));
-
-    const nuevoProyecto = {
-      id: createProjectId(),
-      nombre: nombreProyecto.trim(),
-      modeloIa: modeloActual.nombre,
-      costoCreditos: costoCalculado,
-      duracionSeg: Number(duracion),
-      estado: "EN_PROCESO",
-      fechaCreacion: new Date().toISOString(),
-      urlPreview:
-        "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=600&q=80",
-    };
-
-    setProyectos([nuevoProyecto, ...proyectos]);
-    setNombreProyecto("");
-
-    Swal.fire({
-      icon: "success",
-      title: "¡Proyecto enviado!",
-      text: `El video "${nombreProyecto}" entró a cola de renderizado.`,
-      background: "#1e293b",
-      color: "#f8fafc",
-      confirmButtonColor: "#6366f1",
-      timer: 2000,
-      showConfirmButton: false,
-    });
   };
 
   // Regla 2: Recarga con Bonificación (+20% si >= 500)
@@ -115,11 +142,11 @@ export const Home = () => {
     e.preventDefault();
 
     const cantidad = Number(montoRecarga);
-    if (cantidad <= 0) {
+    if (!Number.isInteger(cantidad) || cantidad < 50) {
       Swal.fire({
         icon: "warning",
         title: "Monto inválido",
-        text: "El valor a recargar debe ser mayor a 0.",
+        text: "La recarga mínima es de 50 créditos enteros.",
         background: "#1e293b",
         color: "#f8fafc",
         confirmButtonColor: "#6366f1",
@@ -128,27 +155,46 @@ export const Home = () => {
     }
 
     try {
-      await aivaApi.recargarCreditos(usuario.id, cantidad);
-    } catch {
-      console.warn("API de recargas no disponible, aplicando crédito localmente.");
+      const recharge = await aivaApi.recargarCreditos(usuario.id, cantidad);
+      setUsuario((current) => ({
+        ...current,
+        creditosDisponibles: recharge.creditosDisponibles,
+      }));
+      Swal.fire({
+        icon: "success",
+        title: "Recarga de prueba registrada",
+        text: `Se agregaron ${formatCredits(recharge.totalRecargado)} créditos${
+          recharge.bonificacion
+            ? ` (incluye bono de ${formatCredits(recharge.bonificacion)} cr)`
+            : ""
+        }. El pago real requiere una pasarela.`,
+        background: "#1e293b",
+        color: "#f8fafc",
+        confirmButtonColor: "#10b981",
+      });
+    } catch (error) {
+      Swal.fire({
+        icon: "error",
+        title: "No se pudo registrar la recarga",
+        text: error.message,
+        background: "#1e293b",
+        color: "#f8fafc",
+        confirmButtonColor: "#ef4444",
+      });
     }
-
-    setUsuario((prev) => ({
-      ...prev,
-      creditosDisponibles: prev.creditosDisponibles + recargaCalculada.total,
-    }));
-
-    Swal.fire({
-      icon: "success",
-      title: "Recarga exitosa",
-      text: `Se agregaron ${formatCredits(recargaCalculada.total)} créditos${
-        recargaCalculada.hasBonus ? ` (incluye bono de ${formatCredits(recargaCalculada.bonus)} cr)` : ""
-      }.`,
-      background: "#1e293b",
-      color: "#f8fafc",
-      confirmButtonColor: "#10b981",
-    });
   };
+
+  if (cargandoSesion) {
+    return <main className="mx-auto max-w-7xl px-4 py-12 text-slate-300">Cargando tu espacio AIVA...</main>;
+  }
+  if (errorApi || !usuario) {
+    return (
+      <main className="mx-auto max-w-7xl px-4 py-12 text-slate-100">
+        <p role="alert" className="text-red-400">{errorApi || "No se pudo cargar tu cuenta."}</p>
+        <button className="mt-4 text-indigo-300 underline" onClick={() => navigate("/login")}>Volver a iniciar sesión</button>
+      </main>
+    );
+  }
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-10 text-slate-100">
@@ -207,7 +253,7 @@ export const Home = () => {
                   onChange={(e) => setModeloSeleccionado(e.target.value)}
                   className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-white focus:outline-none focus:border-indigo-500 transition-colors"
                 >
-                  {mockModelosIA.map((m) => (
+                  {modelos.map((m) => (
                     <option key={m.id} value={m.id}>
                       {m.nombre} ({m.costoPorSegundo} cr/seg)
                     </option>
@@ -219,15 +265,15 @@ export const Home = () => {
                 <label className="block text-xs font-semibold text-slate-300 uppercase mb-1">
                   Duración ({duracion} segundos)
                 </label>
-                <input
-                  type="range"
-                  min="5"
-                  max="60"
-                  step="5"
+                <select
                   value={duracion}
                   onChange={(e) => setDuracion(Number(e.target.value))}
-                  className="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-indigo-500 mt-3"
-                />
+                  className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-white focus:outline-none focus:border-indigo-500 transition-colors"
+                >
+                  {[5, 10, 15, 30, 45, 60].map((seconds) => (
+                    <option key={seconds} value={seconds}>{seconds} segundos</option>
+                  ))}
+                </select>
               </div>
             </div>
 
@@ -239,7 +285,7 @@ export const Home = () => {
 
             <button
               type="submit"
-              disabled={cargando}
+              disabled={cargando || !modeloActual}
               className="w-full bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white font-semibold py-2.5 px-4 rounded-lg transition-colors shadow-sm text-sm"
             >
               {cargando ? "Enviando a la cola..." : "Comenzar Renderizado"}

@@ -24,6 +24,13 @@ export const usuarioService = {
     }
     return await apiClient(`/aiva/usuarios/${usuarioId}`);
   },
+
+  listarMovimientos: async (usuarioId) => {
+    if (!usuarioId) {
+      throw new Error('Se requiere el identificador de usuario para consultar los movimientos.');
+    }
+    return await apiClient(`/aiva/usuarios/${usuarioId}/movimientos`);
+  },
 };
 
 export default usuarioService;
