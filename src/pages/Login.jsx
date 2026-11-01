@@ -43,8 +43,8 @@ export const Login = () => {
         timer: 1500,
       });
 
-      // Redirección al panel principal tras login exitoso
-      navigate("/");
+      // Abre directamente el espacio conectado a la API después del login.
+      navigate("/workspace");
     } catch (error) {
       Swal.fire({
         icon: "error",
@@ -97,8 +97,8 @@ export const Login = () => {
               <label className="block text-xs font-semibold text-slate-300 uppercase">
                 Contraseña
               </label>
-              <span className="text-[11px] text-indigo-400 hover:text-indigo-300 cursor-pointer">
-                ¿Olvidaste tu clave?
+              <span className="text-[11px] text-slate-500">
+                Recuperación de contraseña no disponible todavía
               </span>
             </div>
             <input

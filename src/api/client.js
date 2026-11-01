@@ -1,5 +1,6 @@
 // Cliente HTTP base reutilizable para AIVA Studio API
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080/api';
+const API_BASE_URL = (import.meta.env.VITE_API_URL || 'http://localhost:8080/api')
+  .replace(/\/+$/, '');
 
 /**
  * Función wrapper genérica sobre fetch con manejo de JSON y control de excepciones HTTP
@@ -38,10 +39,24 @@ export async function apiClient(endpoint, { body, ...customConfig } = {}) {
     return null;
   }
 
-  const data = await response.json();
+  const contentType = response.headers.get('content-type') || '';
+  const data = contentType.includes('/json')
+    ? await response.json()
+    : await response.text();
 
   if (!response.ok) {
-    throw new Error(data.message || data.error || `Error en la petición: HTTP ${response.status}`);
+    const isPublicAuthRequest = ['/auth/login', '/auth/registro'].includes(endpoint);
+    if (response.status === 401 && !isPublicAuthRequest) {
+      localStorage.removeItem('aiva_token');
+      localStorage.removeItem('aiva_user_id');
+      localStorage.removeItem('aiva_user');
+      window.dispatchEvent(new Event('aiva:unauthorized'));
+    }
+
+    const message = typeof data === 'string'
+      ? data
+      : data?.message || data?.error;
+    throw new Error(message || `Error en la petición: HTTP ${response.status}`);
   }
 
   return data;

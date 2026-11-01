@@ -455,7 +455,7 @@ function PreferencesView({ user }) {
         <div><p className="eyebrow">PERFIL CREADOR</p><h2>{user?.nombre || 'Andrés Rojas'}</h2><p>{user?.email || 'creador@aiva.studio'}</p></div>
         <span className="preference-plan">Plan Creator</span>
       </section>
-      <p className="subtle-note">La gestión de cuenta, preferencias de render y notificaciones se habilitarán al conectar el backend.</p>
+      <p className="subtle-note">El perfil se consulta desde el backend. Los cambios de cuenta, preferencias de render y notificaciones aún no tienen endpoints disponibles.</p>
     </>
   )
 }
@@ -491,6 +491,9 @@ export function StudioWorkspace({ user: propUser, setUser: propSetUser, onLogout
     }
 
     let activeRequest = true
+    const redirectOnUnauthorized = () => window.location.replace('/login')
+    window.addEventListener('aiva:unauthorized', redirectOnUnauthorized)
+
     Promise.all([
       aivaApi.obtenerPerfil(userId),
       aivaApi.listarProyectos(userId),
@@ -514,6 +517,7 @@ export function StudioWorkspace({ user: propUser, setUser: propSetUser, onLogout
 
     return () => {
       activeRequest = false
+      window.removeEventListener('aiva:unauthorized', redirectOnUnauthorized)
     }
   }, [setUser])
 

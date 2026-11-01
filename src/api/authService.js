@@ -8,8 +8,8 @@ export const authService = {
     });
     if (data.token) {
       localStorage.setItem('aiva_token', data.token);
-    localStorage.setItem('aiva_user_id', String(data.usuario.id));
-    localStorage.setItem('aiva_user', JSON.stringify(data.usuario));
+      localStorage.setItem('aiva_user_id', String(data.usuario.id));
+      localStorage.setItem('aiva_user', JSON.stringify(data.usuario));
     }
     return data;
   },
@@ -17,18 +17,18 @@ export const authService = {
   // Registro de nuevo usuario (POST /api/auth/registro)
   registro: async (nombre, email, password) => {
     return await apiClient('/auth/registro', {
-    body: { nombre, email, password },
+      body: { nombre, email, password },
     });
   },
 
   // Cerrar sesión
   logout: async () => {
     try {
-    await apiClient('/auth/logout', { method: 'POST' });
+      await apiClient('/auth/logout', { method: 'POST' });
     } finally {
-    localStorage.removeItem('aiva_token');
-    localStorage.removeItem('aiva_user_id');
-    localStorage.removeItem('aiva_user');
+      localStorage.removeItem('aiva_token');
+      localStorage.removeItem('aiva_user_id');
+      localStorage.removeItem('aiva_user');
     }
   },
 };
