@@ -30,6 +30,7 @@ export const Aside = () => {
                     ? "bg-indigo-600 text-white shadow-sm"
                     : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/60"
                 }`
+                
               }
             >
               <span className="text-base">{item.icon}</span>
