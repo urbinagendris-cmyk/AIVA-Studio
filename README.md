@@ -1,76 +1,43 @@
-# React + Vite
+# AIVA Studio
 
-## Reglas de negocio y pruebas en Postman
+Frontend de un estudio para preparar y administrar solicitudes de generación de videos con IA. La interfaz está construida con React y Vite y consume la API Spring Boot de AIVA Studio.
 
-La API aplica las reglas en la capa `@Service`; los controladores solo reciben la petición y delegan.
+## Experiencia incluida
 
-### Regla 1: proyectos
+- Registro e inicio de sesión conectados con la API.
+- Resumen con saldo, actividad reciente y estados de generación.
+- Flujo guiado de tres pasos: brief y prompt, modelo y formato, revisión y envío.
+- Catálogo de modelos y costos consultados desde la API.
+- Biblioteca de proyectos con búsqueda, filtros por estado y vista de detalles.
+- Pantalla de créditos con historial persistido y registro de recargas de prueba.
+- Diseño adaptable a pantallas pequeñas.
 
-`ProjectService` exige que el nombre del proyecto no esté vacío, tenga máximo 80 caracteres y no esté repetido.
+El flujo retoma patrones de navegación, paneles de gestión, filtros y asistente de reserva del [proyecto de referencia](https://github.com/jfinforecursos/backend2-proyecto-integrador-v1), traducidos al dominio de creación audiovisual. No se conservan entidades ni contenido médico.
 
-Caso exitoso, `POST http://localhost:8080/api/projects`, respuesta `201 Created`:
+## Ejecutar localmente
 
-```json
-{
-	"name": "Lanzamiento Aurora",
-	"description": "Video promocional para redes"
-}
+Requisitos: Node.js y npm.
+
+```bash
+npm install
+cp .env.example .env
+npm run dev
 ```
 
-Caso fallido, mismo endpoint, respuesta `400 Bad Request`:
+También puedes iniciar Vite con `npm start`. Tailwind CSS 4 se procesa mediante el plugin de Vite y los estilos globales se cargan desde `src/index.css`.
 
-```json
-{
-	"name": "   ",
-	"description": "Proyecto sin nombre"
-}
+Comandos disponibles:
+
+```bash
+npm run lint
+npm run build
+npm run preview
 ```
 
-### Regla 2: tareas
+## Conexión con el backend
 
-`TaskService` exige un título de máximo 120 caracteres y limita el estado a `PENDIENTE`, `EN_PROGRESO` o `COMPLETADA`.
+El frontend consume el backend Spring Boot para registro e inicio de sesión, consulta del catálogo y perfil, creación/listado de proyectos y movimientos de créditos. Copia `.env.example` a `.env` y configura `VITE_API_URL` con la URL base de la API, incluyendo `/api`; por defecto usa `http://localhost:8080/api`. El backend debe permitir el origen del frontend mediante `FRONTEND_URL` (por defecto `http://localhost:5173`).
 
-Caso exitoso, `POST http://localhost:8080/api/projects/{projectId}/tasks`, respuesta `201 Created`:
+Levanta primero el backend y después inicia Vite con `npm run dev`. Vite lee las variables al arrancar, así que reinícialo después de cambiar `.env`. Los errores de red o de validación se muestran al usuario; no se confirma una operación que el servidor no haya guardado. Si el token expira, la sesión local se limpia y se vuelve al inicio de sesión.
 
-```json
-{
-	"title": "Escribir guion",
-	"status": "PENDIENTE"
-}
-```
-
-Caso fallido, mismo endpoint, respuesta `400 Bad Request`:
-
-```json
-{
-	"title": "Escribir guion",
-	"status": "FINALIZADA"
-}
-```
-
-El error controlado tiene esta forma:
-
-```json
-{
-	"status": 400,
-	"error": "Bad Request",
-	"message": "El estado debe ser PENDIENTE, EN_PROGRESO o COMPLETADA"
-}
-```
-
-Las pruebas automatizadas equivalentes están en `BusinessRulesIntegrationTests` y se ejecutan con `./mvnw.cmd test`.
-
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
-
-Currently, two official plugins are available:
-
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
-
-## React Compiler
-
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+El backend guarda solicitudes en cola y actualiza el saldo de forma transaccional. Las recargas son de prueba y no procesan pagos; tampoco se genera un video hasta conectar un proveedor externo.
