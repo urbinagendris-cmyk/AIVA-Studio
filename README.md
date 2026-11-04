@@ -41,3 +41,6 @@ El frontend consume el backend Spring Boot para registro e inicio de sesión, co
 Levanta primero el backend y después inicia Vite con `npm run dev`. Vite lee las variables al arrancar, así que reinícialo después de cambiar `.env`. Los errores de red o de validación se muestran al usuario; no se confirma una operación que el servidor no haya guardado. Si el token expira, la sesión local se limpia y se vuelve al inicio de sesión.
 
 El backend guarda solicitudes en cola y actualiza el saldo de forma transaccional. Las recargas son de prueba y no procesan pagos; tampoco se genera un video hasta conectar un proveedor externo.
+## Nuevas Actualizacione
+
+se agregan neuvos atributos
