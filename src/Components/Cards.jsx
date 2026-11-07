@@ -12,7 +12,7 @@ export const Card = ({ proyecto }) => {
             <h3 className="font-semibold text-white text-base truncate">{proyecto.nombre}</h3>
             <span
               className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded-full border ${
-                proyecto.estado === "FINALIZADO"
+                proyecto.estado === "COMPLETADO"
                   ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
                   : "bg-amber-500/10 text-amber-400 border-amber-500/20"
               }`}
