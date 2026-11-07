@@ -36,7 +36,7 @@ npm run preview
 
 ## Conexión con el backend
 
-El frontend consume el backend Spring Boot para registro e inicio de sesión, consulta del catálogo y perfil, creación/listado de proyectos y movimientos de créditos. Copia `.env.example` a `.env` y configura `VITE_API_URL` con la URL base de la API, incluyendo `/api`; por defecto usa `http://localhost:8080/api`. El backend debe permitir el origen del frontend mediante `FRONTEND_URL` (por defecto `http://localhost:5173`).
+El frontend consume el backend Spring Boot para registro e inicio de sesión, consulta del catálogo y perfil, creación/listado de proyectos y movimientos de créditos. Copia `.env.example` a `.env` y configura `VITE_API_URL` con la URL base de la API, incluyendo `/api`; por defecto usa `http://localhost:8080/api`. El backend debe permitir el origen del frontend mediante `CORS_ORIGINS` (por defecto `http://localhost:5173`).
 
 Levanta primero el backend y después inicia Vite con `npm run dev`. Vite lee las variables al arrancar, así que reinícialo después de cambiar `.env`. Los errores de red o de validación se muestran al usuario; no se confirma una operación que el servidor no haya guardado. Si el token expira, la sesión local se limpia y se vuelve al inicio de sesión.
 

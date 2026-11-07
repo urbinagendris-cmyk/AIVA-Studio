@@ -30,7 +30,7 @@ export const Login = () => {
     setCargando(true);
 
     try {
-      // Llamada al endpoint de autenticación POST /api/auth/login
+      // Llamada al endpoint de autenticación POST /api/sessions
       await aivaApi.login(email.trim(), password);
 
       Swal.fire({

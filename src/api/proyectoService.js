@@ -3,40 +3,24 @@ import { apiClient } from './client';
 export const proyectoService = {
   /**
    * REGLA 1: Crear Proyecto de Renderizado y Descontar Créditos
-   * POST /api/aiva/proyectos/crear
+   * POST /api/projects
+   *
+   * El backend toma el usuario del token y calcula el costo con el modelo y la duración,
+   * por eso ya no se envían usuarioId, modeloIa ni costoCreditos.
    */
-  crearProyecto: async ({
-    usuarioId,
-    nombre,
-    prompt,
-    modelId,
-    modeloIa,
-    costoCreditos,
-    duracionSeg,
-    formato,
-    estilo,
-  }) => {
-    return await apiClient('/aiva/proyectos/crear', {
-      body: {
-        usuarioId,
-        nombre,
-        prompt,
-        modelId,
-        modeloIa,
-        costoCreditos,
-        duracionSeg,
-        formato,
-        estilo,
-      },
+  crearProyecto: async ({ nombre, prompt, modelId, duracionSeg, formato, estilo, tags }) => {
+    return await apiClient('/projects', {
+      body: { nombre, prompt, modelId, duracionSeg, formato, estilo, tags },
     });
   },
 
-  // Listar proyectos del usuario (GET /api/aiva/proyectos/usuario/:id)
-  listarPorUsuario: async (usuarioId) => {
+  // Listar proyectos del usuario (GET /api/users/{userId}/projects?estado=)
+  listarPorUsuario: async (usuarioId, estado) => {
     if (!usuarioId) {
       throw new Error('Se requiere el identificador de usuario para consultar los proyectos.');
     }
-    return await apiClient(`/aiva/proyectos/usuario/${usuarioId}`);
+    const query = estado ? `?estado=${encodeURIComponent(estado)}` : '';
+    return await apiClient(`/users/${usuarioId}/projects${query}`);
   },
 };
 
