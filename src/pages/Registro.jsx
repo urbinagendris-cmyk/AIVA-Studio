@@ -56,7 +56,7 @@ export const Registro = () => {
     setCargando(true);
 
     try {
-      // Envío a la API (POST /api/auth/registro)
+      // Envío a la API (POST /api/users)
       await aivaApi.registro(nombre.trim(), email.trim(), password);
 
       Swal.fire({

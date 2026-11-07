@@ -22,7 +22,11 @@ export const aivaApi = {
   listarMovimientos: usuarioService.listarMovimientos,
 
   // Catálogo de modelos habilitados en el backend
-  listarModelos: () => apiClient('/aiva/modelos'),
+  listarModelos: () => apiClient('/ai-models'),
+
+  // Actualización de perfirl y cambio de contraseña
+  actualizarPerfil: usuarioService.actualizarPerfil,
+  cambiarPassword: usuarioService.cambiarPassword,
 };
 
 export default aivaApi;
