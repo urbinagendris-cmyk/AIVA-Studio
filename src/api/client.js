@@ -45,7 +45,8 @@ export async function apiClient(endpoint, { body, ...customConfig } = {}) {
     : await response.text();
 
   if (!response.ok) {
-    const isPublicAuthRequest = ['/auth/login', '/auth/registro'].includes(endpoint);
+    const isPublicAuthRequest =
+  config.method === 'POST' && ['/users', '/sessions'].includes(endpoint);
     if (response.status === 401 && !isPublicAuthRequest) {
       localStorage.removeItem('aiva_token');
       localStorage.removeItem('aiva_user_id');

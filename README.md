@@ -43,4 +43,4 @@ Levanta primero el backend y después inicia Vite con `npm run dev`. Vite lee la
 El backend guarda solicitudes en cola y actualiza el saldo de forma transaccional. Las recargas son de prueba y no procesan pagos; tampoco se genera un video hasta conectar un proveedor externo.
 ## Nuevas Actualizacione
 
-se agregan neuvos atributos
+se agregan neuvos atributos         
