@@ -29,6 +29,24 @@ export const usuarioService = {
     }
     return await apiClient(`/users/${usuarioId}/credits`);
   },
+
+    // Editar cuenta (PUT /api/users/{userId})
+  actualizarPerfil: async (usuarioId, { nombre, email }) => {
+    if (!usuarioId) throw new Error('Se requiere el identificador de usuario.');
+    return await apiClient(`/users/${usuarioId}`, {
+      method: 'PUT',
+      body: { nombre, email },
+    });
+  },
+
+  // Cambiar contraseña (PATCH /api/users/{userId}/password)
+  cambiarPassword: async (usuarioId, { passwordActual, passwordNueva }) => {
+    if (!usuarioId) throw new Error('Se requiere el identificador de usuario.');
+    return await apiClient(`/users/${usuarioId}/password`, {
+      method: 'PATCH',
+      body: { passwordActual, passwordNueva },
+    });
+  },
 };
 
 export default usuarioService;

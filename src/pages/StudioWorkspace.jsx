@@ -1,17 +1,22 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useLocation } from 'react-router-dom'
+import Swal from 'sweetalert2'
 import { aivaApi } from '../api/api'
 import { calculateCreditRecharge, calculateRenderCost, formatCredits } from '../helpers/businessRules'
 import { toWorkspaceMovement, toWorkspaceProject } from '../helpers/aivaMappers'
 import '../components/studio-workspace.css'
 
 const navItems = [
-  { label: 'Resumen', icon: 'grid' },
+  { label: 'Inicio', icon: 'grid' },
   { label: 'Crear video', icon: 'spark' },
   { label: 'Mis proyectos', icon: 'folder' },
   { label: 'Modelos IA', icon: 'models' },
   { label: 'Créditos', icon: 'wallet' },
 ]
+const HOME_LABEL = navItems[0].label
+
+// Botones fijos en la barra lateral. Todo lo demás va en el menú desplegable.
+const SIDEBAR_LABELS = [HOME_LABEL, 'Modelos IA']
 
 function StudioIcon({ name }) {
   const paths = {
@@ -26,6 +31,9 @@ function StudioIcon({ name }) {
     play: 'M8 5v14l11-7L8 5z',
     search: 'M11 19a8 8 0 110-16 8 8 0 010 16zm6-2 4 4',
     clock: 'M12 8v4l2.5 2.5M21 12a9 9 0 11-18 0 9 9 0 0118 0z',
+    logout: 'M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9',
+    chevron: 'M6 9l6 6 6-6',
+    user: 'M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2M12 11a4 4 0 100-8 4 4 0 000 8z',
   }
 
   return (
@@ -39,42 +47,85 @@ function BrandMark() {
   return <span className="brand-mark" aria-hidden="true"><span /></span>
 }
 
-function Sidebar({ active, onNavigate, onLogout, user }) {
+function WorkspaceMenu({ user, active, onNavigate }) {
+  const [open, setOpen] = useState(false)
+  const menuRef = useRef(null)
+
+  useEffect(() => {
+    if (!open) return
+    const onClickOutside = (event) => {
+      if (!menuRef.current?.contains(event.target)) setOpen(false)
+    }
+    const onKeyDown = (event) => {
+      if (event.key === 'Escape') setOpen(false)
+    }
+    document.addEventListener('mousedown', onClickOutside)
+    document.addEventListener('keydown', onKeyDown)
+    return () => {
+      document.removeEventListener('mousedown', onClickOutside)
+      document.removeEventListener('keydown', onKeyDown)
+    }
+  }, [open])
+
+  const initials = (user?.nombre || 'AS').slice(0, 2).toUpperCase()
+
+  return (
+    <div className="workspace-menu" ref={menuRef}>
+      <button
+        type="button"
+        className="workspace-switcher workspace-trigger"
+        aria-haspopup="menu"
+        aria-expanded={open}
+        onClick={() => setOpen((current) => !current)}
+      >
+        <span className="avatar avatar-peach">{initials}</span>
+        <span><b>{user?.nombre || 'Andrés Studio'}</b></span>
+        <span className={`chevron ${open ? 'open' : ''}`}><StudioIcon name="chevron" /></span>
+      </button>
+
+      {open && (
+        <div className="workspace-dropdown" role="menu">
+          {navItems.filter((item) => !SIDEBAR_LABELS.includes(item.label)).map(({ icon, label }) => (
+            <button
+              key={label}
+              type="button"
+              role="menuitem"
+              className={active === label ? 'active' : ''}
+              onClick={() => { setOpen(false); onNavigate(label) }}
+            >
+              <StudioIcon name={icon} />
+              {label}
+              {label === 'Crear video' && <span className="nav-new">Nuevo</span>}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function Sidebar({ active, onNavigate, user }) {
   return (
     <aside className="sidebar">
       <div className="sidebar-brand">
         <BrandMark />
         <strong>AIVA<span>.</span>studio</strong>
       </div>
-      <div className="workspace-switcher">
-        <span className="avatar avatar-peach">AS</span>
-        <span><small>Espacio de trabajo</small><b>{user?.nombre || 'Andrés Studio'}</b></span>
-        <span className="chevron">⌄</span>
-      </div>
+      <WorkspaceMenu user={user} active={active} onNavigate={onNavigate} />
       <nav className="sidebar-nav" aria-label="Navegación principal">
-        {navItems.map(({ icon, label }) => (
+        {navItems.filter((item) => SIDEBAR_LABELS.includes(item.label)).map(({ icon, label }) => (
           <button
             key={label}
+            type="button"
             className={active === label ? 'active' : ''}
             onClick={() => onNavigate(label)}
             aria-current={active === label ? 'page' : undefined}
           >
             <StudioIcon name={icon} />
             {label}
-            {label === 'Crear video' && <span className="nav-new">Nuevo</span>}
           </button>
         ))}
       </nav>
-      <div className="sidebar-bottom">
-        <button className={active === 'Configuración' || active === 'Preferencias' ? 'active' : ''} onClick={() => onNavigate('Preferencias')}>
-          <StudioIcon name="models" />Preferencias
-        </button>
-        <div className="profile">
-          <span className="avatar avatar-yellow">{(user?.nombre || 'AR').slice(0, 2).toUpperCase()}</span>
-          <span><b>{user?.nombre || 'Andrés Rojas'}</b><small>Plan Creator</small></span>
-          <button className="logout" onClick={onLogout} aria-label="Cerrar sesión">↗</button>
-        </div>
-      </div>
     </aside>
   )
 }
@@ -455,8 +506,140 @@ function PreferencesView({ user }) {
         <div><p className="eyebrow">PERFIL CREADOR</p><h2>{user?.nombre || 'Andrés Rojas'}</h2><p>{user?.email || 'creador@aiva.studio'}</p></div>
         <span className="preference-plan">Plan Creator</span>
       </section>
-      <p className="subtle-note">El perfil se consulta desde el backend. Los cambios de cuenta, preferencias de render y notificaciones aún no tienen endpoints disponibles.</p>
+      <p className="subtle-note">Puedes editar tu nombre, correo y contraseña desde el menú de tu usuario. Las preferencias de render y las notificaciones aún no tienen endpoints disponibles.</p>
     </>
+  )
+}
+
+function UserMenu({ user, onEditAccount, onNavigate }) {
+  const [open, setOpen] = useState(false)
+  const menuRef = useRef(null)
+
+  useEffect(() => {
+    if (!open) return
+    const onClickOutside = (event) => {
+      if (!menuRef.current?.contains(event.target)) setOpen(false)
+    }
+    const onKeyDown = (event) => {
+      if (event.key === 'Escape') setOpen(false)
+    }
+    document.addEventListener('mousedown', onClickOutside)
+    document.addEventListener('keydown', onKeyDown)
+    return () => {
+      document.removeEventListener('mousedown', onClickOutside)
+      document.removeEventListener('keydown', onKeyDown)
+    }
+  }, [open])
+
+  const initials = (user?.nombre || 'AR').slice(0, 2).toUpperCase()
+
+  return (
+    <div className="user-menu" ref={menuRef}>
+      <button
+        type="button"
+        className="header-user user-menu-trigger"
+        aria-haspopup="menu"
+        aria-expanded={open}
+        onClick={() => setOpen((current) => !current)}
+      >
+        <span className="avatar avatar-yellow">{initials}</span>
+        <span><b>{user?.nombre}</b><small>⚡ {formatCredits(user?.creditosDisponibles ?? 0)} cr</small></span>
+        <span className={`chevron ${open ? 'open' : ''}`}><StudioIcon name="chevron" /></span>
+      </button>
+
+      {open && (
+        <div className="user-menu-dropdown" role="menu">
+          <div className="user-menu-info"><b>{user?.nombre}</b><small>{user?.email}</small></div>
+          <button type="button" role="menuitem" onClick={() => { setOpen(false); onEditAccount() }}>
+            <StudioIcon name="user" />Editar cuenta
+          </button>
+          <button type="button" role="menuitem" onClick={() => { setOpen(false); onNavigate('Preferencias') }}>
+            <StudioIcon name="models" />Preferencias
+          </button>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function EditAccountModal({ user, onClose, onSave }) {
+  const [form, setForm] = useState({
+    nombre: user?.nombre || '',
+    email: user?.email || '',
+    passwordActual: '',
+    passwordNueva: '',
+    confirmar: '',
+  })
+  const [error, setError] = useState('')
+  const [submitting, setSubmitting] = useState(false)
+
+  const wantsPasswordChange = Boolean(form.passwordActual || form.passwordNueva || form.confirmar)
+
+  function update(key, value) {
+    setForm((current) => ({ ...current, [key]: value }))
+    setError('')
+  }
+
+  async function handleSubmit(event) {
+    event.preventDefault()
+    if (!form.nombre.trim()) return setError('El nombre es obligatorio.')
+    if (!/^\S+@\S+\.\S+$/.test(form.email.trim())) return setError('Ingresa un correo electrónico válido.')
+    if (wantsPasswordChange) {
+      if (!form.passwordActual) return setError('Ingresa tu contraseña actual para cambiarla.')
+      if (form.passwordNueva.length < 6 || form.passwordNueva.length > 72) {
+        return setError('La nueva contraseña debe tener entre 6 y 72 caracteres.')
+      }
+      if (form.passwordNueva !== form.confirmar) return setError('Las contraseñas nuevas no coinciden.')
+    }
+
+    setSubmitting(true)
+    try {
+      await onSave(
+        { nombre: form.nombre.trim(), email: form.email.trim() },
+        wantsPasswordChange ? { passwordActual: form.passwordActual, passwordNueva: form.passwordNueva } : null,
+      )
+      onClose()
+    } catch (saveError) {
+      setError(saveError.message)
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  return (
+    <div className="modal-backdrop" onMouseDown={onClose}>
+      <form className="create-modal" role="dialog" aria-modal="true" aria-labelledby="edit-account-title"
+        onMouseDown={(event) => event.stopPropagation()} onSubmit={handleSubmit}>
+        <button type="button" className="close-button" onClick={onClose} aria-label="Cerrar"><StudioIcon name="close" /></button>
+        <div className="modal-kicker"><StudioIcon name="user" /><span>TU CUENTA</span></div>
+        <h2 id="edit-account-title">Editar cuenta</h2>
+        <p className="muted">Actualiza tu nombre, correo o contraseña.</p>
+
+        <label htmlFor="account-name">Nombre</label>
+        <input id="account-name" value={form.nombre} maxLength={80} onChange={(e) => update('nombre', e.target.value)} />
+
+        <label htmlFor="account-email" className="field-spaced">Correo electrónico</label>
+        <input id="account-email" type="email" value={form.email} maxLength={254} onChange={(e) => update('email', e.target.value)} />
+
+        <p className="account-divider">CAMBIAR CONTRASEÑA (OPCIONAL)</p>
+        <label htmlFor="account-pass-current">Contraseña actual</label>
+        <input id="account-pass-current" type="password" autoComplete="current-password" value={form.passwordActual} onChange={(e) => update('passwordActual', e.target.value)} />
+
+        <label htmlFor="account-pass-new" className="field-spaced">Nueva contraseña</label>
+        <input id="account-pass-new" type="password" autoComplete="new-password" value={form.passwordNueva} onChange={(e) => update('passwordNueva', e.target.value)} />
+
+        <label htmlFor="account-pass-confirm" className="field-spaced">Confirmar nueva contraseña</label>
+        <input id="account-pass-confirm" type="password" autoComplete="new-password" value={form.confirmar} onChange={(e) => update('confirmar', e.target.value)} />
+
+        {error && <p className="creator-error" role="alert">{error}</p>}
+        <div className="creator-actions">
+          <button type="button" className="secondary-button" onClick={onClose}>Cancelar</button>
+          <button type="submit" className="primary-button modal-submit" disabled={submitting}>
+            {submitting ? 'Guardando...' : 'Guardar cambios'}
+          </button>
+        </div>
+      </form>
+    </div>
   )
 }
 
@@ -473,7 +656,7 @@ export function StudioWorkspace({ user: propUser, setUser: propSetUser, onLogout
   const user = propUser || internalUser
   const setUser = propSetUser || setInternalUser
 
-  const [active, setActive] = useState(() => initialViews[pathname] || 'Resumen')
+  const [active, setActive] = useState(() => initialViews[pathname] || HOME_LABEL)
   const [projects, setProjects] = useState([])
   const [transactions, setTransactions] = useState([])
   const [models, setModels] = useState([])
@@ -482,6 +665,7 @@ export function StudioWorkspace({ user: propUser, setUser: propSetUser, onLogout
   const [selectedProject, setSelectedProject] = useState(null)
   const [notice, setNotice] = useState('')
   const [noticeType, setNoticeType] = useState('info')
+  const [isAccountOpen, setAccountOpen] = useState(false)
 
   useEffect(() => {
     const userId = localStorage.getItem('aiva_user_id')
@@ -532,6 +716,39 @@ export function StudioWorkspace({ user: propUser, setUser: propSetUser, onLogout
   }
 
   const onLogout = propLogout || logout
+
+  async function confirmLogout() {
+    const { isConfirmed } = await Swal.fire({
+      icon: 'question',
+      title: '¿Cerrar sesión?',
+      text: 'Tendrás que iniciar sesión de nuevo para volver a tu estudio.',
+      showCancelButton: true,
+      confirmButtonText: 'Sí, cerrar sesión',
+      cancelButtonText: 'Cancelar',
+      background: '#1e293b',
+      color: '#f8fafc',
+      confirmButtonColor: '#ef4444',
+      cancelButtonColor: '#334155',
+    })
+    if (isConfirmed) onLogout()
+  }
+
+  async function saveAccount(profileData, passwordData) {
+    const updated = await aivaApi.actualizarPerfil(user.id, profileData)
+    setUser((current) => ({ ...current, ...updated }))
+    localStorage.setItem('aiva_user', JSON.stringify(updated))
+
+    if (passwordData) {
+      try {
+        await aivaApi.cambiarPassword(user.id, passwordData)
+      } catch (error) {
+        throw new Error(`Tus datos se actualizaron, pero la contraseña no cambió: ${error.message}`)
+      }
+    }
+    setNotice(passwordData ? 'Cuenta y contraseña actualizadas.' : 'Cuenta actualizada correctamente.')
+    setNoticeType('success')
+  }
+
   const activeTitle = useMemo(() => active === 'Configuración' ? 'Preferencias' : active, [active])
 
   function navigate(label) {
@@ -639,14 +856,17 @@ export function StudioWorkspace({ user: propUser, setUser: propSetUser, onLogout
 
   return (
     <div className="app-shell">
-      <Sidebar active={active} onNavigate={navigate} onLogout={onLogout} user={user} />
+      <Sidebar active={active} onNavigate={navigate} onLogout={confirmLogout} user={user} />
       <main className="dashboard">
         <header className="dashboard-header">
           <div className="mobile-header-brand"><BrandMark /><strong>AIVA<span>.</span>studio</strong></div>
           <div className="breadcrumbs"><span>Estudio</span><b>/</b><strong>{activeTitle}</strong></div>
           <div className="header-actions">
             <span className="studio-mode">AIVA STUDIO</span>
-            <div className="header-user"><span className="avatar avatar-yellow">{(user?.nombre || 'AR').slice(0, 2).toUpperCase()}</span><span><b>{user?.nombre || 'Andrés Rojas'}</b><small>⚡ {formatCredits(user?.creditosDisponibles ?? 0)} cr</small></span></div>
+            <UserMenu user={user} onEditAccount={() => setAccountOpen(true)} onNavigate={navigate} />
+            <button type="button" className="header-logout" onClick={confirmLogout} aria-label="Cerrar sesión" title="Cerrar sesión">
+              <StudioIcon name="logout" /><span>Salir</span>
+            </button>
           </div>
         </header>
         <nav className="mobile-studio-nav" aria-label="Navegación móvil">
@@ -658,7 +878,7 @@ export function StudioWorkspace({ user: propUser, setUser: propSetUser, onLogout
         </nav>
         <div className="dashboard-content">
           {notice && <div className={`workspace-notice ${noticeType}`} role="status"><span>{notice}</span><button onClick={() => setNotice('')} aria-label="Cerrar aviso">×</button></div>}
-          {active === 'Resumen' && <SummaryView user={user} projects={projects} models={models} onCreate={openCreator} onNavigate={navigate} onOpenProject={setSelectedProject} />}
+          {active === HOME_LABEL && <SummaryView user={user} projects={projects} models={models} onCreate={openCreator} onNavigate={navigate} onOpenProject={setSelectedProject} />}
           {active === 'Mis proyectos' && <ProjectsView projects={projects} models={models} onCreate={openCreator} onOpenProject={setSelectedProject} />}
           {active === 'Modelos IA' && <ModelsView models={models} onChooseModel={chooseModel} />}
           {active === 'Créditos' && <CreditsView user={user} onRecharge={recharge} transactions={transactions} />}
@@ -678,6 +898,7 @@ export function StudioWorkspace({ user: propUser, setUser: propSetUser, onLogout
       </main>
       {isCreatorOpen && <VideoCreatorModal models={models} onClose={() => setCreatorOpen(false)} onCreate={createProject} creditosDisponibles={user?.creditosDisponibles ?? 0} initialModelId={selectedModelId} />}
       {selectedProject && <ProjectDetailsModal project={selectedProject} models={models} onClose={() => setSelectedProject(null)} />}
+      {isAccountOpen && <EditAccountModal user={user} onClose={() => setAccountOpen(false)} onSave={saveAccount} />}
     </div>
   )
 }
