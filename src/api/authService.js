@@ -31,6 +31,16 @@ export const authService = {
       localStorage.removeItem('aiva_user');
     }
   },
+
+    // Solicitar enlace de recuperación (POST /api/password-resets)
+  solicitarRecuperacion: async (email) => {
+    return await apiClient('/password-resets', { body: { email } });
+  },
+
+  // Guardar la nueva contraseña (POST /api/password-resets/confirm)
+  restablecerPassword: async (token, passwordNueva) => {
+    return await apiClient('/password-resets/confirm', { body: { token, passwordNueva } });
+  },
 };
 
 export default authService;

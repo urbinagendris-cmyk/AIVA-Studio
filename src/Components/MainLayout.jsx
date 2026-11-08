@@ -3,15 +3,24 @@ import Header from "./Header";
 import Aside from "./Aside";
 import Footer from "./Footer";
 
+const WORKSPACE_ROUTES = ["/workspace", "/proyectos", "/modelos", "/creditos", "/preferencias"];
+const AUTH_ROUTES = ["/login", "/registro", "/recuperar-password", "/restablecer-password"];
+
 export const MainLayout = () => {
   const { pathname } = useLocation();
 
-  if (
-    ["/workspace", "/proyectos", "/modelos", "/creditos", "/preferencias"].includes(
-      pathname,
-    )
-  ) {
+  // El workspace trae su propio layout
+  if (WORKSPACE_ROUTES.includes(pathname)) {
     return <Outlet />;
+  }
+
+  // Pantallas de acceso: solo el panel, sin menús
+  if (AUTH_ROUTES.includes(pathname)) {
+    return (
+      <main className="min-h-screen bg-slate-950 text-slate-100">
+        <Outlet />
+      </main>
+    );
   }
 
   return (

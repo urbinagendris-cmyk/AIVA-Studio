@@ -4,6 +4,8 @@ import Home from "../pages/Home";
 import StudioWorkspace from "../pages/StudioWorkspace";
 import Login from "../pages/Login";
 import Registro from "../pages/Registro";
+import RecuperarPassword from "../pages/RecuperarPassword";
+import RestablecerPassword from "../pages/RestablecerPassword";
 
 const AppRouter = createBrowserRouter([
   {
@@ -21,6 +23,12 @@ const AppRouter = createBrowserRouter([
       {
         path: "login",
         element: <Login />,
+      },
+      { path: "recuperar-password", 
+        element: <RecuperarPassword /> 
+      },
+      { path: "restablecer-password", 
+        element: <RestablecerPassword /> 
       },
       {
         path: "registro",
