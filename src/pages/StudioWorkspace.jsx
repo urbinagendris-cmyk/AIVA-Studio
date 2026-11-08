@@ -766,6 +766,45 @@ export function StudioWorkspace({ user: propUser, setUser: propSetUser, onLogout
     }
   }
 
+    async function createProject(brief) {
+    if (!user || brief.cost > user.creditosDisponibles) {
+      throw new Error('No tienes créditos suficientes para enviar esta solicitud.')
+    }
+
+    try {
+      const savedProject = await aivaApi.crearProyecto({
+        usuarioId: user.id,
+        nombre: brief.title.trim(),
+        prompt: brief.prompt.trim(),
+        modelId: brief.modelId,
+        modeloIa: brief.modelName,
+        costoCreditos: brief.cost,
+        duracionSeg: brief.duration,
+        formato: brief.format,
+        estilo: brief.style,
+      })
+      const project = toWorkspaceProject(savedProject)
+      setProjects((current) => [project, ...current])
+      setTransactions((current) => [{
+        id: savedProject.id,
+        label: `Generación · ${savedProject.nombre}`,
+        date: 'Ahora',
+        amount: -savedProject.costoCreditos,
+      }, ...current])
+      setUser((current) => ({
+        ...current,
+        creditosDisponibles: savedProject.creditosDisponibles,
+      }))
+      renderToStaticMarkup.fire({icon: 'success', title: 'Solicitud guardada en la cola'})
+    } catch (error) {
+      setNotice(`No se pudo guardar la solicitud: ${error.message}`)
+      setNoticeType('warning')
+      throw error
+    }
+    setCreatorOpen(false)
+    setActive('Mis proyectos')
+  }
+
     async function deleteProject(project) {
     console.log('[eliminar] 1. función iniciada, id =', project.id)
 
