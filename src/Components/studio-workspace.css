@@ -2040,3 +2040,21 @@
 }
 .workspace-dropdown [role="menuitem"]:hover { background: #1e293b; color: #fff; }
 .workspace-dropdown [role="menuitem"].active { background: #1e1b4b; color: #a5b4fc; font-weight: 600; }
+
+/* ===== Eliminar proyecto ===== */
+.danger-button {
+  display: inline-flex; align-items: center; gap: 0.5rem;
+  padding: 0.65rem 1rem;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  color: #f87171;
+  border-radius: 0.65rem;
+  font-size: 0.85rem; font-weight: 600; cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.danger-button:hover { background: rgba(239, 68, 68, 0.2); color: #fca5a5; }
+
+.project-details-modal .creator-actions { margin-top: 1.25rem; }
+
+/* Tus modales usan z-index 9999: la confirmación de SweetAlert debe quedar por encima */
+.swal2-container { z-index: 10000 !important; }

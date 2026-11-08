@@ -22,6 +22,14 @@ export const proyectoService = {
     const query = estado ? `?estado=${encodeURIComponent(estado)}` : '';
     return await apiClient(`/users/${usuarioId}/projects${query}`);
   },
+
+  // Eliminar proyecto (DELETE /api/projects/{id})
+  eliminar: async (proyectoId) => {
+    if (!proyectoId) {
+      throw new Error('Se requiere el identificador del proyecto.');
+    }
+    return await apiClient(`/projects/${proyectoId}`, { method: 'DELETE' });
+  },
 };
 
 export default proyectoService;
