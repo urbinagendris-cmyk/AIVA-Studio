@@ -1,9 +1,15 @@
 import { createBrowserRouter, Navigate } from "react-router-dom";
 import MainLayout from "../components/MainLayout";
-import Home from "../pages/Home";
 import StudioWorkspace from "../pages/StudioWorkspace";
 import Login from "../pages/Login";
 import Registro from "../pages/Registro";
+import RecuperarPassword from "../pages/RecuperarPassword";
+import RestablecerPassword from "../pages/RestablecerPassword";
+
+const RedirectLoggedIn = ({children}) => 
+  localStorage.getItem("aiva_token") && localStorage.getItem("aiva_user_id")
+    ? <Navigate to="/workspace" replace />
+    : children;
 
 const AppRouter = createBrowserRouter([
   {
@@ -12,7 +18,7 @@ const AppRouter = createBrowserRouter([
     children: [
       {
         index: true,
-        element: <Home />,
+        element: <Navigate to="/workspace" replace/>,
       },
       {
         path: "workspace",
@@ -20,13 +26,18 @@ const AppRouter = createBrowserRouter([
       },
       {
         path: "login",
-        element: <Login />,
+        element: <RedirectLoggedIn ><Login /></RedirectLoggedIn>,
       },
-      {
+          {
         path: "registro",
-        element: <Registro />,
+        element: <RedirectLoggedIn ><Registro /></RedirectLoggedIn>,
       },
-      // Enlaces del Aside / Header que dirigen al espacio de trabajo
+      { path: "recuperar-password", 
+        element: <RecuperarPassword /> 
+      },
+      { path: "restablecer-password", 
+        element: <RestablecerPassword /> 
+      },
       {
         path: "proyectos",
         element: <StudioWorkspace />,
@@ -43,7 +54,6 @@ const AppRouter = createBrowserRouter([
         path: "preferencias",
         element: <StudioWorkspace />,
       },
-      // Redirección para cualquier ruta no encontrada
       {
         path: "*",
         element: <Navigate to="/" replace />,

@@ -11,22 +11,30 @@ export const aivaApi = {
   login: authService.login,
   registro: authService.registro,
   logout: authService.logout,
+  solocitarRecuperacion: authService.solicitarRecuperacion,
+  restablecerPassword: authService.restablecerPassword,
 
   // Regla 1: Proyectos y deducción de créditos
   crearProyecto: proyectoService.crearProyecto,
   listarProyectos: proyectoService.listarPorUsuario,
+  eliminarProyecto: proyectoService.eliminar,
 
   // Regla 2: Recarga con bonificación
   recargarCreditos: usuarioService.recargarCreditos,
   obtenerPerfil: usuarioService.obtenerPerfil,
   listarMovimientos: usuarioService.listarMovimientos,
 
+  // Edi|ción de perfil y cambio de contraseña
+  actualizarPerfil: usuarioService.actualizarPerfil,
+  cambiarPassword: usuarioService.cambiarPassword,
+
   // Catálogo de modelos habilitados en el backend
   listarModelos: () => apiClient('/ai-models'),
 
-  // Actualización de perfirl y cambio de contraseña
-  actualizarPerfil: usuarioService.actualizarPerfil,
-  cambiarPassword: usuarioService.cambiarPassword,
+  // Recuperación de contraseña
+  solicitarRecuperacion: authService.solicitarRecuperacion,
+  restablecerPassword: authService.restablecerPassword,
+  
 };
 
 export default aivaApi;

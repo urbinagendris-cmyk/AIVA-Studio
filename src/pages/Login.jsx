@@ -60,9 +60,9 @@ export const Login = () => {
   };
 
   return (
-    <div className="min-h-[calc(100vh-8rem)] flex items-center justify-center px-4 sm:px-6 lg:px-8 py-12">
+    <div className="min-h-screen flex items-center justify-center px-4 sm:px-6 lg:px-8 py-12">
       <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-2xl p-8 shadow-2xl space-y-6">
-        
+
         {/* Encabezado */}
         <div className="text-center space-y-2">
           <div className="inline-flex p-3 bg-indigo-600/10 border border-indigo-500/20 rounded-2xl text-2xl text-indigo-400 mb-1">
@@ -93,15 +93,10 @@ export const Login = () => {
           </div>
 
           <div>
-            <div className="flex justify-between items-center mb-1">
-              <label className="block text-xs font-semibold text-slate-300 uppercase">
+              <label className="block text-xs font-semibold text-slate-300 uppercase mb-1">
                 Contraseña
               </label>
-              <span className="text-[11px] text-slate-500">
-                Recuperación de contraseña no disponible todavía
-              </span>
-            </div>
-            <input
+              <input
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
@@ -109,6 +104,12 @@ export const Login = () => {
               className="w-full bg-slate-950 border border-slate-700 rounded-lg px-4 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition-colors"
               autoComplete="current-password"
             />
+            <div className="mt-2 text-right">
+              <Link to="/recuperar-password" 
+              className="text-xs text-indigo-400 hover:text-indigo-300 font-medium transition-colors">
+                ¿Olvidaste tu contraseña?
+              </Link>
+            </div>
           </div>
 
           <button

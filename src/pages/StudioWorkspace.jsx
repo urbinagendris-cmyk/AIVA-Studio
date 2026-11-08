@@ -34,6 +34,7 @@ function StudioIcon({ name }) {
     logout: 'M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9',
     chevron: 'M6 9l6 6 6-6',
     user: 'M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2M12 11a4 4 0 100-8 4 4 0 000 8z',
+    trash: 'M4 7h16M10 11v6M14 11v6M5 7l1 12a2 2 0 002 2h8a2 2 0 002-2l1-12M9 7V4h6v3',
   }
 
   return (
@@ -319,7 +320,7 @@ function VideoCreatorModal({ models, onClose, onCreate, creditosDisponibles, ini
   )
 }
 
-function ProjectDetailsModal({ project, models, onClose }) {
+function ProjectDetailsModal({ project, models, onClose, onDelete }) {
   const model = models.find((item) => item.id === project.modelId)
   const statusClass = (project.status || '').toLowerCase().replace(/\s+/g, '-')
 
@@ -338,6 +339,12 @@ function ProjectDetailsModal({ project, models, onClose }) {
           <div><dt>Estilo</dt><dd>{project.style || 'Cinematográfico'}</dd></div>
         </dl>
         <div className="prompt-preview"><small>PROMPT</small><p>{project.prompt || 'Este proyecto no incluye un prompt guardado.'}</p></div>
+        <div className="creator-actions">
+          <button type="button" className="danger-button" onClick={() => onDelete(project)} aria-label="Eliminar proyecto">
+            <StudioIcon name="trash" />
+            Eliminar proyecto
+          </button>
+        </div>
       </section>
     </div>
   )
@@ -478,7 +485,7 @@ function CreditsView({ user, onRecharge, transactions }) {
               {formatCredits(rechargeCalc.total)} créditos {rechargeCalc.hasBonus && <small>(+{formatCredits(rechargeCalc.bonus)} bono)</small>}
             </strong>
           </div>
-          <button className="primary-button create-button" onClick={() => onRecharge(Number(amount))} disabled={!Number(amount) || Number(amount) < 50}>Simular recarga</button>
+          <button className="primary-button create-button" onClick={() => onRecharge(Number(amount))} disabled={!Number(amount) || Number(amount) < 50}>Recargar</button>
         </section>
       </div>
       <section className="workspace-panel transaction-panel">
@@ -759,7 +766,7 @@ export function StudioWorkspace({ user: propUser, setUser: propSetUser, onLogout
     }
   }
 
-  async function createProject(brief) {
+    async function createProject(brief) {
     if (!user || brief.cost > user.creditosDisponibles) {
       throw new Error('No tienes créditos suficientes para enviar esta solicitud.')
     }
@@ -788,8 +795,7 @@ export function StudioWorkspace({ user: propUser, setUser: propSetUser, onLogout
         ...current,
         creditosDisponibles: savedProject.creditosDisponibles,
       }))
-      setNotice('Solicitud guardada. La generación real requiere conectar un proveedor de video.')
-      setNoticeType('success')
+      renderToStaticMarkup.fire({icon: 'success', title: 'Solicitud guardada en la cola'})
     } catch (error) {
       setNotice(`No se pudo guardar la solicitud: ${error.message}`)
       setNoticeType('warning')
@@ -797,6 +803,47 @@ export function StudioWorkspace({ user: propUser, setUser: propSetUser, onLogout
     }
     setCreatorOpen(false)
     setActive('Mis proyectos')
+  }
+
+    async function deleteProject(project) {
+    console.log('[eliminar] 1. función iniciada, id =', project.id)
+
+    const result = await Swal.fire({
+      icon: 'warning',
+      title: '¿Eliminar proyecto?',
+      text: `Se eliminará "${project.title}". No podrás recuperarlo y los créditos no se devolverán.`,
+      showCancelButton: true,
+      confirmButtonText: 'Sí, eliminar',
+      cancelButtonText: 'Cancelar',
+      background: '#1e293b',
+      color: '#f8fafc',
+      confirmButtonColor: '#ef4444',
+      cancelButtonColor: '#334155',
+    })
+    console.log('[eliminar] 2. resultado de la confirmación:', result)
+
+    if (!result.isConfirmed) return
+
+    try {
+      console.log('[eliminar] 3. llamando a la API')
+      await aivaApi.eliminarProyecto(project.id)
+      console.log('[eliminar] 4. la API respondió bien')
+
+      setProjects((current) => current.filter((item) => item.id !== project.id))
+      setSelectedProject(null)
+      setNotice('Proyecto eliminado.')
+      setNoticeType('success')
+    } catch (error) {
+      console.error('[eliminar] error:', error)
+      await Swal.fire({
+        icon: 'error',
+        title: 'No se pudo eliminar el proyecto',
+        text: error.message,
+        background: '#1e293b',
+        color: '#f8fafc',
+        confirmButtonColor: '#6366f1',
+      })
+    }
   }
 
   async function recharge(amount) {
@@ -897,7 +944,7 @@ export function StudioWorkspace({ user: propUser, setUser: propSetUser, onLogout
         </div>
       </main>
       {isCreatorOpen && <VideoCreatorModal models={models} onClose={() => setCreatorOpen(false)} onCreate={createProject} creditosDisponibles={user?.creditosDisponibles ?? 0} initialModelId={selectedModelId} />}
-      {selectedProject && <ProjectDetailsModal project={selectedProject} models={models} onClose={() => setSelectedProject(null)} />}
+      {selectedProject && <ProjectDetailsModal project={selectedProject} models={models} onClose={() => setSelectedProject(null)} onDelete={deleteProject}/>}
       {isAccountOpen && <EditAccountModal user={user} onClose={() => setAccountOpen(false)} onSave={saveAccount} />}
     </div>
   )
