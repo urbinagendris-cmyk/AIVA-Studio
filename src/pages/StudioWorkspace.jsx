@@ -4,7 +4,7 @@ import Swal from 'sweetalert2'
 import { aivaApi } from '../api/api'
 import { calculateCreditRecharge, calculateRenderCost, formatCredits } from '../helpers/businessRules'
 import { toWorkspaceMovement, toWorkspaceProject } from '../helpers/aivaMappers'
-import '../components/studio-workspace.css'
+import '../Components/studio-workspace.css'
 
 const navItems = [
   { label: 'Inicio', icon: 'grid' },
