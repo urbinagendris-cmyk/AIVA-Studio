@@ -1,5 +1,5 @@
 import { createBrowserRouter, Navigate } from "react-router-dom";
-import MainLayout from "../components/MainLayout";
+import MainLayout from "../Components/MainLayout";
 import StudioWorkspace from "../pages/StudioWorkspace";
 import Login from "../pages/Login";
 import Registro from "../pages/Registro";
