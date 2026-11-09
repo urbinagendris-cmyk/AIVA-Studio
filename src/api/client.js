@@ -1,7 +1,8 @@
 // Cliente HTTP base reutilizable para AIVA Studio API
-const API_BASE_URL = (import.meta.env.VITE_API_URL || 'http://localhost:8080/api')
+const RAW_API_URL = (import.meta.env.VITE_API_URL || 'http://localhost:8080/api')
   .replace(/\/+$/, '');
-
+// Si la variable no termina en /api, se agrega automáticamente
+const API_BASE_URL = RAW_API_URL.endsWith('/api') ? RAW_API_URL : `${RAW_API_URL}/api`;
 /**
  * Función wrapper genérica sobre fetch con manejo de JSON y control de excepciones HTTP
  */
